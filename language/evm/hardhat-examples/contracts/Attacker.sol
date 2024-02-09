@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IVulnerableContract {
+interface IReentrantContract {
     function reentrant_function() external;
 }
 
@@ -11,6 +11,6 @@ contract AttackerV1 {
     constructor ( ) {}
 
     function attack() public {
-        IVulnerableContract(msg.sender).reentrant_function();
+        IReentrantContract(msg.sender).reentrant_function();
     }
 }
