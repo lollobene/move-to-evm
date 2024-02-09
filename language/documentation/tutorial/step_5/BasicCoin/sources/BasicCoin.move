@@ -98,6 +98,11 @@ module NamedAddr::BasicCoin {
     }
 
     // EXERCISE: Write `balance_of_dne` test here!
+    #[test]
+    #[expected_failure]
+    fun balance_of_dne() acquires Balance{
+        balance_of(@0x1);
+    }
 
     #[test]
     #[expected_failure]

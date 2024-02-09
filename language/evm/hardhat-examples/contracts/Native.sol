@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/utils/Address.sol";
 contract Native_Sol {
     using Address for address;
 
+    uint256 val = 0;
+
     function getContractAddr() public view returns (address) {
         return address(this);
     }

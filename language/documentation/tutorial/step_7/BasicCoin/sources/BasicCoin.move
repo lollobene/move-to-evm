@@ -36,6 +36,7 @@ module NamedAddr::BasicCoin {
 
     spec balance_of {
         pragma aborts_if_is_strict;
+        aborts_if !exists<Balance<CoinType>>(owner);
     }
 
     /// Transfers `amount` of tokens from `from` to `to`. This method requires a witness with `CoinType` so that the

@@ -23,12 +23,13 @@ module NamedAddr::BasicCoin {
     /// minting or transferring to the account.
     public fun publish_balance(account: &signer) {
         // TODO: add an assert to check that `account` doesn't already have a `Balance` resource.
+        assert!(exists<Balance>(signer::address_of(account)), EALREADY_HAS_BALANCE);
         let empty_coin = Coin { value: 0 };
         move_to(account, Balance { coin: empty_coin });
     }
 
     /// Initialize this module.
-    public fun mint(module_owner: &signer, mint_addr: address, amount: u64) {
+    public fun mint(module_owner: &signer, mint_addr: address, amount: u64) acquires Balance{
         // Only the owner of the module can initialize this module
         assert!(signer::address_of(module_owner) == MODULE_OWNER, ENOT_MODULE_OWNER);
 
@@ -58,12 +59,15 @@ module NamedAddr::BasicCoin {
     }
 
     /// Deposit `amount` number of tokens to the balance under `addr`.
-    fun deposit(_addr: address, check: Coin) {
+    fun deposit(_addr: address, check: Coin) acquires Balance {
         // TODO: follow the implementation of `withdraw` and implement me!
+        // assert!(!exists<Balance>(_addr), EALREADY_HAS_BALANCE);
         let Coin { value: _amount } = check; // unpacks the check
 
         // Get a mutable reference of addr's balance's coin value
+        let balance_ref = &mut borrow_global_mut<Balance>(_addr).coin.value;
 
         // Increment the value by `amount`
+        *balance_ref = *balance_ref + _amount;
     }
 }

@@ -9,7 +9,7 @@
 
 # Assumptions for nix systems:
 # 1 The running user is the user who will execute the builds.
-# 2 .profile will be used to configure the shell
+# 2 .zprofile will be used to configure the shell
 # 3 ${HOME}/bin/, or ${INSTALL_DIR} is expected to be on the path - hashicorp tools/hadolint/etc.  will be installed there on linux systems.
 
 # fast fail.
@@ -28,7 +28,7 @@ function usage {
   echo "Usage:"
   echo "Installs or updates necessary dev tools for Move."
   echo "-b batch mode, no user interactions and minimal output"
-  echo "-p update ${HOME}/.profile"
+  echo "-p update ${HOME}/.zprofile"
   echo "-t install build tools"
   echo "-y installs or updates Move prover tools: z3, cvc5, dotnet, boogie"
   echo "-d installs the solidity compiler"
@@ -42,9 +42,9 @@ function usage {
 
 function add_to_profile {
   eval "$1"
-  FOUND=$(grep -c "$1" <"${HOME}/.profile" || true) # grep error return would kill the script.
+  FOUND=$(grep -c "$1" <"${HOME}/.zprofile" || true) # grep error return would kill the script.
   if [ "$FOUND" == "0" ]; then
-    echo "$1" >>"${HOME}"/.profile
+    echo "$1" >>"${HOME}"/.zprofile
   fi
 }
 
@@ -53,7 +53,7 @@ function add_to_profile {
 # this profile needs built and sourced on every execution of a job using the docker image.   See the .github/actions/build-setup
 # action in this repo, as well as docker/ci/github/Dockerfile.
 function update_path_and_profile {
-  touch "${HOME}"/.profile
+  touch "${HOME}"/.zprofile
 
   DOTNET_ROOT="$HOME/.dotnet"
   BIN_DIR="$HOME/bin"
@@ -432,7 +432,7 @@ EOF
 
   if [[ "$INSTALL_PROFILE" == "true" ]]; then
     cat <<EOF
-Moreover, ~/.profile will be updated (since -p was provided).
+Moreover, ~/.zprofile will be updated (since -p was provided).
 EOF
   fi
 
