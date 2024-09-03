@@ -19,32 +19,32 @@ contract ModuleB {
     }
 
     function runGetRes() public {
-        a.protect(msg.sender, abi.encodeCall(this.getResource, ()));
+        a.protect(msg.sender, abi.encodeCall(this.getResource, (msg.sender)));
     }
 
     function runGiveBackRes() public {
-        a.protect(msg.sender, abi.encodeCall(this.giveBackRes, ()));
+        a.protect(msg.sender, abi.encodeCall(this.giveBackRes, (msg.sender)));
     }
 
-    function getResource() public {
+    function getResource(address signer) public {
         // get resource from S
         ModuleA.A memory res = a.resourceOut(44);
         // wrap S into struct B
         B memory b = B(res);
         // move_to B to sender
-        state[msg.sender] = b;
+        state[signer] = b;
         a.storeExternal(res);
     }
 
-    function giveBackRes() public {
+    function giveBackRes(address signer) public {
         // move_from B from sender
-        B memory b = state[msg.sender];
-        delete state[msg.sender];
+        B memory b = state[signer];
+        delete state[signer];
         a.unstoreExternal(b.s);
         // give back resource
         a.resourceIn(b.s);
 
-        assert(a.read(msg.sender) == 44);
+        assert(a.read(signer) == 44);
     }
 
 }
