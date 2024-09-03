@@ -2,20 +2,20 @@
 
 pragma solidity >=0.8.19;
 
-import {ModuleA} from "./ModuleA.sol";
+import { ModuleA } from "./ModuleA.sol";
 
 contract ModuleB {
 
     mapping (address => B) state;
 
     struct B {
-        bytes32 s; // reference to A.S
+        ModuleA.A s; // reference to A.S
     }
 
-    A a;
+    ModuleA a;
 
     constructor() {
-        a = new A();
+        a = new ModuleA();
     }
 
     function runGetRes() public {
@@ -28,7 +28,7 @@ contract ModuleB {
 
     function getResource() public {
         // get resource from S
-        bytes32 memory res = a.resourceOut(44);
+        ModuleA.A memory res = a.resourceOut(44);
         // wrap S into struct B
         B memory b = B(res);
         // move_to B to sender

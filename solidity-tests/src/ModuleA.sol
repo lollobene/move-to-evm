@@ -22,7 +22,9 @@ contract ModuleA is ProtectionLayer {
 
     function storeExternal(A calldata res) external storeExt(0) {}
 
-    function unstoreExternal() external unstoreExt(0) {}
+    function unstoreExternal(A calldata res) external unstoreExt(0) {
+        state[msg.sender] = res;
+    }
 
     /*
     function read(address acc) public view returns (uint256) {
