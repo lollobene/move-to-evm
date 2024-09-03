@@ -26,39 +26,39 @@ contract ProtectionLayer {
     address signer;
 
     function validate() internal view returns (bool) {
-        require(f == false, "Protection layer is still active");
-        require(sizeOfH == 0, "Resource or reference still around");
-        require(signer == address(0), "Signer still up");
+        assert(f == false); // , "Protection layer is still active");
+        assert(sizeOfH == 0); // , "Resource or reference still around");
+        assert(signer == address(0)); // , "Signer still up");
         return true;
     }
 
     function protect(address _signer, bytes calldata cb) external {
-        require(f == false, "Protection layer is already active");
+        assert(f == false); // , "Protection layer is already active");
         f = true;
         signer = _signer;
         (bool success, ) = (msg.sender).call(cb);
-        require(success, "Callback error");
+        assert(success); // , "Callback error");
         f = false;
         delete signer;
-        require(validate(), "Constraints have been violated");
+        assert(validate()); // , "Constraints have been violated");
     }
 
     modifier resOut(uint256 resId) {
-        require(f == true, "protection layer not active");
+        assert(f == true); // , "protection layer not active");
         H[signer][resId] = T(0);
         sizeOfH++;
         _;
     }
 
     modifier resIn(uint256 resId) {
-        require(f == true, "protection layer not active");
+        assert(f == true); // , "protection layer not active");
         delete H[signer][resId];
         sizeOfH--;
         _;
     }
 
     modifier storeExt(uint256 resId) {
-        require(f == true, "protection layer not active");
+        assert(f == true); // , "protection layer not active");
         delete H[signer][resId];
         E[signer] = resId;
         sizeOfH--;
@@ -66,7 +66,7 @@ contract ProtectionLayer {
     }
 
     modifier unstoreExt(uint256 resId) {
-        require(f == true, "protection layer not active");
+        assert(f == true); // , "protection layer not active");
         delete E[signer];
         H[signer][resId] = T(0);
         sizeOfH++;
