@@ -17,13 +17,13 @@ contract ModuleA is ProtectionLayer {
     }
 
     function resourceIn(A calldata res) external resIn(0) {
-        state[msg.sender] = res;
+        state[signer] = res;
     }
 
     function storeExternal(A calldata res) external storeExt(0) {}
 
     function unstoreExternal(A calldata res) external unstoreExt(0) {
-        state[msg.sender] = res;
+        state[signer] = res;
     }
 
     /*

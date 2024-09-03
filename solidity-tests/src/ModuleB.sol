@@ -12,7 +12,7 @@ contract ModuleB {
         ModuleA.A s; // reference to A.S
     }
 
-    ModuleA a;
+    ModuleA public a;
 
     constructor() {
         a = new ModuleA();
