@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.8.19;
+
+import {ModuleA} from "./ModuleA.sol";
+
+contract ModuleB {
+
+    mapping (address => B) state;
+
+    struct B {
+        bytes32 s; // reference to A.S
+    }
+
+    A a;
+
+    constructor() {
+        a = new A();
+    }
+
+    function runGetRes() public {
+        a.protect(msg.sender, abi.encodeCall(this.getResource, ()));
+    }
+
+    function runGiveBackRes() public {
+        a.protect(msg.sender, abi.encodeCall(this.giveBackRes, ()));
+    }
+
+    function getResource() public {
+        // get resource from S
+        bytes32 memory res = a.resourceOut(44);
+        // wrap S into struct B
+        B memory b = B(res);
+        // move_to B to sender
+        state[msg.sender] = b;
+        a.storeExternal(res);
+    }
+
+    function giveBackRes() public {
+        // move_from B from sender
+        B memory b = state[msg.sender];
+        delete state[msg.sender];
+        a.unstoreExternal(b.s);
+        // give back resource
+        a.resourceIn(b.s);
+    }
+
+}
