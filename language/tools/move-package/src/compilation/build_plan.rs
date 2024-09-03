@@ -17,7 +17,6 @@ use std::{collections::BTreeSet, io::Write, path::Path};
 
 use super::package_layout::CompiledPackageLayout;
 
-#[cfg(feature = "evm-backend")]
 use {
     colored::Colorize,
     move_to_yul::{options::Options as MoveToYulOptions, run_to_yul},
@@ -33,7 +32,6 @@ pub struct BuildPlan {
     resolution_graph: ResolvedGraph,
 }
 
-#[cfg(feature = "evm-backend")]
 fn should_recompile(
     source_paths: impl IntoIterator<Item = impl AsRef<Path>>,
     output_paths: impl IntoIterator<Item = impl AsRef<Path>>,
@@ -199,7 +197,6 @@ impl BuildPlan {
         Ok(compiled)
     }
 
-    #[cfg(feature = "evm-backend")]
     pub fn compile_evm<W: Write>(&self, writer: &mut W) -> Result<()> {
         let root_package = &self.resolution_graph.package_table[&self.root];
         let project_root = match &self.resolution_graph.build_options.install_dir {

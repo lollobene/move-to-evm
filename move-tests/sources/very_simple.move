@@ -1,5 +1,4 @@
-module deploy_address::simple {
-    use std::signer::address_of;
+module deploy_address::very_simple {
 
     struct Simple has key, store {
         a: u64
@@ -8,10 +7,12 @@ module deploy_address::simple {
     struct SimpleBytes has key{
         foo: vector<u8>
     }
+    const A : u64 = 10;
+    const B : u64 = 20;
 
-    public fun create(a: u64): Simple {
+    public fun create(_a: u64): Simple {
         let s = Simple {
-            a
+            a: B
         };
         s
     }
@@ -20,8 +21,8 @@ module deploy_address::simple {
         move_to(acc, s);
     }
 
-    public fun read(acc: &signer): u64 acquires Simple {
-        let s = borrow_global<Simple>(address_of(acc));
+    public fun read(acc: address): u64 acquires Simple {
+        let s = borrow_global<Simple>(acc);
         s.a
     }
 
@@ -32,8 +33,8 @@ module deploy_address::simple {
     }
     */
 
-    public fun read_immut(acc: &signer): u64 acquires Simple {
-        let s = borrow_global<Simple>(address_of(acc));
+    public fun read_immut(acc: address): u64 acquires Simple {
+        let s = borrow_global<Simple>(acc);
         s.a
     }
 
@@ -69,8 +70,8 @@ module deploy_address::simple {
         (s1, s2)
     }
 
-    public fun delete(acc: &signer) acquires Simple {
-        let s = get(address_of(acc));
+    public fun delete(acc: address) acquires Simple {
+        let s = get(acc);
         destroy(s);
     }
 
@@ -91,7 +92,7 @@ module deploy_address::simple {
     }
 
     public fun writeMutable(ref: &mut Simple): &mut Simple {
-        ref.a = 10;
+        ref.a = B;
         ref
     }
 
@@ -103,7 +104,7 @@ module deploy_address::simple {
 
     fun give_me_ref() {
         let s = Simple {
-            a: 10
+            a: A
         };
         let mut_ref = &mut s;
         writeMutable(mut_ref);

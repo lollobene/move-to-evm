@@ -30,7 +30,6 @@ impl Build {
             }
 
             Architecture::Ethereum => {
-                #[cfg(feature = "evm-backend")]
                 config.compile_package_evm(&rerooted_path, &mut std::io::stderr())?;
 
                 #[cfg(not(feature = "evm-backend"))]

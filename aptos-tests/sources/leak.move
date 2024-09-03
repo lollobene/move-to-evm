@@ -13,9 +13,23 @@ module deploy_address::leak {
     }
 
     public fun leak(s: &mut Simple): &mut u64 {
+
         &mut s.a
     }
 
+    /*
+    public fun leakRef(s: &mut Simple): &Simple {
+        let ref = s;
+        ref
+    }
+
+    public fun foo(s: Simple): &Simple {
+        let x = leakRef(&mut s);
+        let Simple { a, b } = s;
+        x
+    }
+
+    */
     /*
     public fun main(acc: address) {
         let res_ref = g(acc);

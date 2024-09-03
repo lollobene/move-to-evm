@@ -1,5 +1,6 @@
 module deploy_address::simple {
     use std::signer::address_of;
+    use aptos_framework::coin::{Self, Coin};
 
     struct Simple has key, store {
         a: u64
@@ -79,7 +80,7 @@ module deploy_address::simple {
     }
 
     fun loadBytes(acc: &signer, some_bytes: vector<u8>) {
-        // let some_bytes = b"hello";
+        let some_bytes = b"hello";
         let s = SimpleBytes {
             foo: some_bytes
         };
@@ -116,5 +117,14 @@ module deploy_address::simple {
         writeMutable(ref);
     }
     */
+
+    public fun manage_coin<T>(coin: Coin<T>): Coin<T> {
+        let _ = coinRef(&mut coin);
+        coin
+    }
+
+    public fun coinRef<T>(coin: &mut Coin<T>): &mut Coin<T> {
+        coin
+    }
 
 }
