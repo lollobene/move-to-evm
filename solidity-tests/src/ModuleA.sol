@@ -6,7 +6,7 @@ import {ProtectionLayer} from "./ProtectionLayer.sol";
 
 contract ModuleA is ProtectionLayer {
 
-    mapping(address => A) public state;
+    mapping(address => A) state;
 
     struct A {
         uint256 a;
