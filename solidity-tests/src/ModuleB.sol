@@ -43,8 +43,6 @@ contract ModuleB {
         a.unstoreExternal(b.s);
         // give back resource
         a.resourceIn(b.s);
-
-        assert(a.read(signer) == 44);
     }
 
 }

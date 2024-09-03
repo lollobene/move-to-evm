@@ -11,11 +11,9 @@ contract CounterTest is Test {
         moduleB = new ModuleB();
     }
 
-    function test_getRes() public {
+    function test_externalResource() public {
         moduleB.runGetRes();
-    }
-
-    function test_giveBackRes() public {
         moduleB.runGiveBackRes();
+        assert(moduleB.a().read(address(this)) == 44);
     }
 }
