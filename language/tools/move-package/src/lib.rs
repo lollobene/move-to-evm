@@ -58,7 +58,6 @@ impl Architecture {
         IntoIterator::into_iter([
             Self::Move,
             Self::AsyncMove,
-            #[cfg(feature = "evm-backend")]
             Self::Ethereum,
         ])
     }
@@ -181,7 +180,7 @@ impl BuildConfig {
         ret
     }
 
-    #[cfg(feature = "evm-backend")]
+
     pub fn compile_package_evm<W: Write>(self, path: &Path, writer: &mut W) -> Result<()> {
         // resolution graph diagnostics are only needed for CLI commands so ignore them by passing a
         // vector as the writer

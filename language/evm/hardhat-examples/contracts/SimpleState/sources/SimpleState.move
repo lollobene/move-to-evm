@@ -7,6 +7,10 @@ module Evm::SimpleState {
         val: U256,
     }
 
+    struct ByteState has key {
+        bytes: vector<u8>,
+    }
+
     #[create(sig=b"constructor(uint256,address)")]
     public fun create(val: U256, addr: address){
         let state = State {
@@ -31,5 +35,20 @@ module Evm::SimpleState {
     public fun remove(addr: address) acquires State {
         let s = move_from<State>(addr);
         let State{ val: _ } = s;
+    }
+
+    #[callable(sig=b"loadBytes(address)")]
+    public fun loadBytes(addr: address) {
+        let bytes = b"Hello, World!";
+        let state = ByteState {
+            bytes
+        };
+        state = doSomething(state);
+        move_to<ByteState>(&sign(addr), state);
+    }
+
+    fun doSomething(state: ByteState): ByteState {
+        state.bytes = b"Edited";
+        state
     }
 }
