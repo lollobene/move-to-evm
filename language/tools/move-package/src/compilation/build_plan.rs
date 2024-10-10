@@ -208,7 +208,7 @@ impl BuildPlan {
             .join("evm");
 
         // Step 1: Compile Move into Yul
-        //   Step 1a: Gather command line arguments for move-to-yul
+        //   Step 1a: get dependencies
         let dependencies = self
             .resolution_graph
             .package_table
@@ -223,7 +223,7 @@ impl BuildPlan {
                     ))
                 }
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>();        
 
         let sources = vec![format!(
             "{}/sources",
@@ -273,7 +273,7 @@ impl BuildPlan {
             .map(|(_name, package)| format!("{}/Move.toml", package.package_path.to_string_lossy()))
             .collect::<Vec<_>>();
 
-        let all_sources = manifests
+            let all_sources = manifests
             .iter()
             .chain(sources.iter())
             .chain(dependencies.iter());
@@ -320,7 +320,7 @@ impl BuildPlan {
 
         // TODO: should inherit color settings from current shell
         let mut error_buffer = Buffer::ansi();
-        if let Err(err) = run_to_yul(
+        let _yul_res = match run_to_yul(
             &mut error_buffer,
             MoveToYulOptions {
                 dependencies,
@@ -331,28 +331,44 @@ impl BuildPlan {
 
                 ..MoveToYulOptions::default()
             },
-        ) {
-            writeln!(
-                writer,
-                "{} Failed to compile Move into Yul {}",
-                err,
-                "ERROR".bold().red()
-            )?;
+        ) { 
+            Ok(()) => {
+                writeln!(
+                    writer,
+                    "{}",
+                    "WARNING".bold().yellow(),
+                )?;
 
-            writeln!(
-                writer,
-                "{}",
-                std::str::from_utf8(error_buffer.as_slice()).unwrap()
-            )?;
+                writeln!(
+                    writer,
+                    "{}",
+                    std::str::from_utf8(error_buffer.as_slice()).unwrap()
+                )?;
+                Ok(())
+            },
+            Err(err) => Err({
 
-            let mut source = err.source();
-            while let Some(s) = source {
-                writeln!(writer, "{}", s)?;
-                source = s.source();
-            }
+                writeln!(
+                    writer,
+                    "{} Failed to compile Move into Yul {}",
+                    err,
+                    "ERROR".bold().red()
+                )?;
+                
+                writeln!(
+                    writer,
+                    "{}",
+                    std::str::from_utf8(error_buffer.as_slice()).unwrap()
+                )?;
+                
+                let mut source = err.source();
+                while let Some(s) = source {
+                    writeln!(writer, "{}", s)?;
+                    source = s.source();
+                }
 
-            return Err(err);
-        }
+            })
+        };
 
         // Step 2: Compile Yul into bytecode using solc
 
