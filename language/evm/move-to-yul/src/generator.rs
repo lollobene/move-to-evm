@@ -574,6 +574,13 @@ impl Generator {
         for fun in &self.needed_yul_functions {
             emitln!(ctx.writer, &fun.yule_def());
         }
+
+        // TODO add protection layer auxiliary functions
+        emitln!(ctx.writer, "function $IsProtected() -> r { r := sload(0x0) }");
+
+        emitln!(ctx.writer, "function $Protect() { sstore(0x0, 1) }");
+        emitln!(ctx.writer, "function $Release() { sstore(0x0, 0) }");
+
         // Empty the set of functions for next block.
         self.done_move_functions.clear();
         self.needed_yul_functions.clear();
