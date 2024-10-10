@@ -27,7 +27,7 @@ module other_address::moduleC {
     }
 
     public fun main(acc: &signer) {
-        let c = create(createA(10));
+        let c = create(createA(10, 44));
         write(acc, c);
     }
 }

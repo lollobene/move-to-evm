@@ -1,12 +1,14 @@
 module deploy_address::moduleA {
 
     struct A has key, store {
-        a: u64
+        a: u64,
+        b: u64
     }
 
-    public fun create(a: u64): A {
+    public fun create(a: u64, b: u64): A {
         let s = A {
-            a
+            a,
+            b
         };
         s
     }
@@ -29,7 +31,7 @@ module deploy_address::moduleA {
     }
 
     public fun main(acc: &signer) {
-        let a = create(10);
+        let a = create(10, 44);
         write(acc, a);
     }
 }

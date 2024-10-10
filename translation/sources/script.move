@@ -4,7 +4,7 @@ script {
     use std::signer::address_of;
 
     fun main(caller: &signer) {
-        let a = createA(10);
+        let a = createA(10, 44);
         let b = createB(20, a);
         write(caller, b);
 
