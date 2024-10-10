@@ -40,6 +40,8 @@ pub const STATIC_ARRAY_SIZE_NOT_MATCH: usize = 92;
 pub const TARGET_CONTRACT_DOES_NOT_CONTAIN_CODE: usize = 91;
 pub const ABI_DECODING_STRUCT_DATA_TOO_SHORT: usize = 90;
 
+pub const REVERT_ERR_NOT_PROTECTED: usize = 89;
+
 #[derive(Debug, Clone)]
 pub(crate) struct EncodingOptions {
     pub padded: bool,
@@ -76,6 +78,7 @@ impl Generator {
             emitln!(ctx.writer, "let selector := {}", shr224);
             emitln!(ctx.writer, "switch selector");
             for fun in callables {
+                // Here functions with reference parameters are excluded
                 if !self.is_suitable_for_dispatch(ctx, fun) {
                     ctx.env.diag(
                         Severity::Warning,
@@ -162,6 +165,22 @@ impl Generator {
         emitln!(ctx.writer, "case {}", function_selector);
         ctx.emit_block(|| {
             emitln!(ctx.writer, "// {}", fun_sig);
+            // Check if the function should be protected by Protection Layer
+            if self.should_be_protected(ctx, fun) {
+                self.generate_protection_layer_check(ctx, REVERT_ERR_NOT_PROTECTED);
+                ctx.env.diag(
+                    Severity::Warning,
+                    &fun.get_loc(),
+                    "function should be protected by Protection Layer",
+                );
+                emitln!(ctx.writer, "// function should be protected by Protection Layer");
+            }
+            if self.should_check_input_ref(fun) {
+                emitln!(ctx.writer, "// function should check incoming reference");
+            }
+            if self.should_check_input_resource(ctx, fun) {
+                emitln!(ctx.writer, "// function should check incoming resource");
+            }        
             // TODO: check delegate call
             if !attributes::is_payable_fun(fun) {
                 self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
@@ -242,6 +261,44 @@ impl Generator {
         } else {
             params
         }
+    }
+
+    /// Determine whether the function should be protected by the Protection Layer.
+    fn should_be_protected(&self, ctx: &Context, fun: &FunctionEnv) -> bool {
+        // get parameter types
+        let param_types = fun.get_parameter_types();
+        // filter parameter types with no drop ability
+        let params_flag = param_types.into_iter().any(|ty| ty.is_reference());
+
+        // get return types
+        let returned_types = fun.get_return_types();
+        let returns_flag = returned_types.into_iter().any(|ty| ty.is_struct() && !(ty.get_struct(ctx.env).expect("struct type").0.get_abilities().has_drop()));
+        params_flag || returns_flag
+    }
+
+    /// Determine wheter the function should check input reference
+    fn should_check_input_ref(&self, fun: &FunctionEnv) -> bool {
+        // get parameter types
+        let param_types = fun.get_parameter_types();
+        // filter parameter types with no drop ability
+        param_types.into_iter().any(|ty| ty.is_reference())   
+    }
+
+    /// Determine wheter the function should check input resource
+    fn should_check_input_resource(&self, ctx: &Context, fun: &FunctionEnv) -> bool {
+        // get parameter types
+        let param_types = fun.get_parameter_types();
+        // filter parameter types with module defined resource
+
+        let mut struct_ids_iter= param_types
+            .into_iter()
+            .filter(|ty| ty.is_struct())
+            .map(|ty| ty.get_struct_id(ctx.env).unwrap());
+        struct_ids_iter.any(|struct_id| self.is_module_defined_resource(struct_id, fun))
+    }
+
+    fn is_module_defined_resource(&self, struct_id: QualifiedInstId<StructId>, fun: &FunctionEnv) -> bool {
+        fun.module_env.get_structs().any(|struct_env| struct_env.get_id() == struct_id.id)
     }
 
     /// Determine whether the function is suitable as a dispatcher item.
@@ -361,6 +418,18 @@ impl Generator {
                 std::iter::once(err_msg.to_string()),
             );
         }
+    }
+
+    /// Generate the protection layer check for the function
+    fn generate_protection_layer_check(&mut self, ctx: &Context, err_code: TempIndex) {
+        emitln!(ctx.writer, "if iszero($IsProtected())");
+        ctx.emit_block(|| {
+            self.call_builtin(
+                ctx,
+                YulFunction::Abort,
+                std::iter::once(err_code.to_string()),
+            );
+        });
     }
 
     /// Generate the code to check value

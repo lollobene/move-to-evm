@@ -1,0 +1,212 @@
+# Move bytecode v6
+# module 123.moduleA {
+# struct A has store, key {
+# 	a: u64,
+# 	b: u64
+# }
+
+# TODO: preamble function:
+#	- allocate memory for arguments
+#	- allocate memory for locals
+#	- function dispatcher
+
+# public create(Arg0: u64, Arg1: u64): A /* def_idx: 0 */ {
+# we assume that locals are already allocated by the callee starting from address at 0x05
+# TODO preapare jump address on the stack
+B0:
+	0:  
+		PUSH1 0x05				# [0x05] push base address for locals
+		MLOAD					# [base_Address] load base address
+		PUSH1 0x00				# [0x00, base_address] push 0x00 for address aritmetics
+		ADD						# [base_address + offset] calculate address of first argument
+		MLOAD					# [first_argument] load first argument
+	1:  
+		PUSH1 0x05				# [0x05, first_argument] push base address for locals
+		MLOAD					# [base_Address, first_argument] load base address
+		PUSH1 0x20				# [0x20, base_address, first_argument] push 0x20 for address aritmetics
+		ADD						# [base_address + 0x20, first_argument] calculate address of second argument
+		MLOAD					# [second_argument, first_argument] load second argument
+	2:  
+		PUSH1 0x04				# [0x04, second_argument, first_argument] push free memory pointer
+		MLOAD					# [free_mem_addr, second_argument, first_argument] load free memory pointer
+		PUSH32 #struct_fields	# [fields_number, free_mem_addr, second_argument, first_argument] push struct size
+		ADD						# [new_mem_addr, second_argument, first_argument] add struct size to free memory pointer
+		DUP						# [new_mem_addr, new_mem_addr, second_argument, first_argument] duplicate memory pointer
+		PUSH1 0x04				# [0x04, new_mem_addr, new_mem_addr, second_argument, first_argument] push free memory pointer
+		MSTORE 					# [new_mem_addr, second_argument, first_argument]store new free memory pointer
+		SWAP					# [second_argument, new_mem_addr, first_argument]swap memory pointer and struct size
+		DUP2					# [new_mem_addr, second_argument, new_mem_addr, first_argument] duplicate memory address
+		MSTORE					# [new_mem_addr, first_argument] store second argument
+		PUSH1 0x20				# [0x20, new_mem_addr, first_argument] push 0x20 for address aritmetics
+		SUB						# [new_mem_addr - 0x20, first_argument] calculate address of first argument
+		SWAP					# [first_argument, new_mem_addr - 0x20] swap first argument and address
+		DUP2					# [new_mem_addr - 0x20, first_argument, new_mem_addr - 0x20] duplicate address
+		MSTORE					# [new_mem_addr - 0x20] store first argument
+	3:  
+        # TODO: on the stack there should be the destination address for the jump
+		JUMP
+# }
+# public get(Arg0: address): A /* def_idx: 1 */ {
+# TODO preapare jump address on the stack
+	B0:
+	0: 
+		PUSH1 0x05				# [0x05] push base address for locals
+		MLOAD					# [base_Address] load base address
+		PUSH1 0x00				# [0x00, base_address] push 0x00 for address aritmetics
+		ADD						# [base_address + offset] calculate address of first argument
+		MLOAD					# [first_argument] load first argument
+	1:
+		# TODO compute correct 
+		# storage location based 
+		# on user_address and struct type
+		# so assume that we have it in memory
+								# [struct_location]
+        
+        # get every field from storage and store it in memory, then return the memory location of the struct
+		DUP 					# [struct_location, struct_location] duplicate struct location
+		SLOAD					# [struct_field_1, struct_location] load field
+		SWAP					# [struct_location, struct_field_1] swap field and struct location
+		PUSH1 0x01				# [0x01, struct_location, struct_field_1] push 0x20 for address aritmetics
+		ADD 					# [struct_location + 0x20, struct_field_1] add 0x20 to struct location
+		SLOAD					# [struct_field_2, struct_field_1] load field
+		PUSH 0x04				# [0x04, struct_field_2, struct_field_1] push free memory pointer
+		MLOAD					# [free_mem_addr, struct_field_2, struct_field_1] load free memory pointer
+		PUSH32 #struct_fields	# [fields_number, free_mem_addr, struct_field_2, struct_field_1] push struct size
+		ADD						# [new_mem_addr, struct_field_2, struct_field_1] add struct size to free memory pointer
+		DUP						# [new_mem_addr, new_mem_addr, struct_field_2, struct_field_1] duplicate memory pointer
+		PUSH1 0x04				# [0x04, new_mem_addr, new_mem_addr, struct_field_2, struct_field_1] push free memory pointer
+		MSTORE 					# [new_mem_addr, struct_field_2, struct_field_1]store new free memory pointer
+		SWAP					# [struct_field_2, new_mem_addr, struct_field_1] swap memory pointer and struct size
+		DUP2					# [new_mem_addr, struct_field_2, new_mem_addr, struct_field_1] duplicate memory address
+		MSTORE					# [new_mem_addr, struct_field_1] store struct field
+		PUSH1 0x20				# [0x20, new_mem_addr, struct_field_1] push 0x20 for address aritmetics
+		SUB						# [new_mem_addr - 0x20, struct_field_1] calculate address of first argument
+		SWAP					# [struct_field_1, new_mem_addr - 0x20] swap first argument and address
+		DUP2					# [new_mem_addr - 0x20, struct_field_1, new_mem_addr - 0x20] duplicate address
+		MSTORE					# [new_mem_addr - 0x20] store first argument
+	2:
+        # TODO: on the stack there should be the destination address for the jump
+		JUMP
+# }
+public main(Arg0: &signer) /* def_idx: 2 */ {
+L1:	loc0: A
+B0:
+	0: 
+        PUSH8 0x0A				# [0x0A] push 10
+	1: 
+        PUSH8 0x2C				# [0x2C, 0x0A] push 44
+	2: 
+        # Call create(u64, u64): A
+        # TODO:
+        # allocate memory for arguments
+        PUSH1 0x40                # [0x40] push free memory pointer
+        MLOAD                     # [free_mem_addr] load free memory pointer
+        PUSH1 0x40
+        # allocate memory for locals
+        # create jump address on the stack
+	3: StLoc[1](loc0: A)
+	4: MoveLoc[0](Arg0: &signer)
+	5: MoveLoc[1](loc0: A)
+	6: Call write(&signer, A)
+	7: Ret
+# }
+# public read(Arg0: address): u64 /* def_idx: 3 */ {
+B0:
+	0: 
+		PUSH1 0x05				# [0x05] push base address for locals
+		MLOAD					# [base_Address] load base address
+		PUSH1 0x00				# [0x00, base_address] push 0x00 for address aritmetics
+		ADD						# [base_address + offset] calculate address of first argument
+		MLOAD					# [first_argument] load first argument
+	1: 
+		# TODO compute correct
+		# storage location based
+		# on user_address and struct type
+		# so assume that we have it in on the stack
+								# [struct_location]
+	2: 
+		# TODO compute offset and add it to struct_location
+		# so assume that we have it on the stack
+								# [field_location]
+	3: 	
+		# TODO decide if load from memory or storage by checking fat pointers
+		DUP						# [field_location, field_location] duplicate field location
+		PUSH32 0x7FFFF..FF		# [0x7FFFFFF.., field_location, field_location] push max u64 value
+		AND						# [flag, field_location] check if field_location is in memory or storage
+		PUSH #dest_Address		# [dest_Address, flag, field_location] push address of the jump destination
+		JUMPI					# [field_location] jump to the destination if flag is true
+		
+        # TODO maybe we should clean the most significant bit
+		SLOAD					# [field_value] load field
+		JUMP
+
+		JUMPDEST				# [field_location] jump destination
+        # TODO maybe we should clean the most significant bit
+		MLOAD					# [field_value] load field
+		JUMP
+
+		JUMPDEST
+
+	4: 
+        # TODO: on the stack there should be the destination address for the jump
+		JUMP
+# }
+# public read_struct(Arg0: &A): u64 /* def_idx: 4 */ {
+B0:
+	0: 
+		PUSH1 0x05				# [0x05] push base address for locals
+		MLOAD					# [base_Address] load base address
+		PUSH1 0x00				# [0x00, base_address] push 0x00 for address aritmetics
+		ADD						# [base_address + offset] calculate address of first argument
+		MLOAD					# [first_argument] load first argument
+	1:
+		# TODO compute offset and add it to struct_location
+		# so assume that we have it on the stack
+								# [field_location]
+	2: 
+		# TODO decide if load from memory or storage by checking fat pointers
+		DUP						# [field_location, field_location] duplicate field location
+		PUSH32 0x7FFFF..FF		# [0x7FFFFFF.., field_location, field_location] push max u64 value
+		AND						# [flag, field_location] check if field_location is in memory or storage
+		PUSH #dest_Address		# [dest_Address, flag, field_location] push address of the jump destination
+		JUMPI					# [field_location] jump to the destination if flag is true
+		
+		SLOAD					# [field_value] load field
+		JUMP
+
+		JUMPDEST				# [field_location] jump destination
+		MLOAD					# [field_value] load field
+		JUMP
+
+		JUMPDEST
+	3: 
+        # TODO: on the stack there should be the destination address for the jump
+		JUMP
+# }
+# public write(Arg0: &signer, Arg1: A) /* def_idx: 5 */ {
+B0:
+	0: 
+		PUSH1 0x05				# [0x05] push base address for locals
+		MLOAD					# [base_Address] load base address
+		PUSH1 0x00				# [0x00, base_address] push 0x00 for address aritmetics
+		ADD						# [base_address + offset] calculate address of first argument
+		MLOAD					# [signer_address] load first argument
+	1: 
+		PUSH1 0x05				# [0x05, signer_address] push base address for locals
+		MLOAD					# [base_Address, signer_address] load base address
+		PUSH1 0x20				# [0x20, base_address, signer_address] push 0x20 for address aritmetics
+		ADD						# [base_address + 0x20, signer_address] calculate address of second argument
+		MLOAD					# [second_argument, signer_address] load second argument
+	2: 
+		# TODO compute correct
+		# storage location based
+		# on user_address and struct type
+		# so assume that we have it in on the stack
+								# [struct_location]
+		# TODO: for every field in struct, load it from memory and store it in storage
+		SSTORE
+	3:
+        # TODO: on the stack there should be the destination address for the jump-
+		JUMP
+# }
+# }
