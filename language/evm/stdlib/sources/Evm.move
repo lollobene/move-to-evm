@@ -22,7 +22,13 @@ module Evm::Evm {
     public native fun balance(addr: address): U256;
 
     /// Transfers the given amount to the target account.
-    public native fun transfer(addr: address, amount: U256);
+    public native fun transfer(addr: address, amount: U256): bool;
+
+    /// Calls external contract.
+    public native fun call(addr: address, value: U256, data: vector<u8>): bool;
+
+    /// Calls external contract.
+    public native fun callback(data: vector<u8>): bool;
 
     /// Emits an event. The type passed for `E` must be annotated with #[event].
     public native fun emit<E>(e: E);
