@@ -10,6 +10,8 @@ async function main() {
     const ResourceDropping = await ethers.getContractFactory(
         'ResourceDropping'
     ); // A Move contract
+
+    // Deploy the contract
     const resourceDropping = await ResourceDropping.deploy(
         BigInt(14),
         deployer.address
@@ -17,6 +19,7 @@ async function main() {
 
     console.log('ResourceDropping contract address:', resourceDropping.address);
 
+    // Call drop resource
     const dropped = await resourceDropping.dropRes();
     console.log('Dropped: ', dropped.toString());
 
