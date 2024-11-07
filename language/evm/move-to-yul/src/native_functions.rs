@@ -185,6 +185,49 @@ impl NativeFunctions {
         let evm = &self.find_module(ctx, "0x2", "Evm");
         let async_actor_lib = &self.find_module(ctx, "0x1", "Actor");
 
+        self.define(ctx, evm, "balance", |_, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+                "\
+(addr) -> amt {
+  amt := balance(addr)
+}"
+            );
+        });
+
+        self.define(ctx, evm, "transfer", |_, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+                "\
+(addr, amount) -> success{
+  success := call(gas(), addr, amount, 0, 0, 0, 0)
+}"
+            );
+        });
+
+        self.define(ctx, evm, "call", |_, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+                "\
+(addr, amount, cb) -> success{
+  log0(add(cb, 0x20), 0x24)
+  // success := true
+  success := call(gas(), caller(), 0, add(cb, 0x20), 0x24, 0, 0)
+}"
+            );
+        });
+
+        self.define(ctx, evm, "callback", |_, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+                "\
+(cb) -> success{
+  log0(add(cb, 0x20), 0x24)
+  success := call(gas(), caller(), 0, add(cb, 0x20), 0x24, 0, 0)
+}"
+            );
+        });
+
         self.define(ctx, evm, "sign", |_, ctx: &Context, _| {
             emitln!(
                 ctx.writer,

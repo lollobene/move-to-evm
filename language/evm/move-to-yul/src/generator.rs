@@ -23,6 +23,7 @@ use crate::{
     functions::FunctionGenerator,
     solidity_ty::SoliditySignature,
     yul_functions::YulFunction,
+    protection_layer::YulProtectionFunction,
     Options,
 };
 
@@ -47,6 +48,14 @@ pub struct Generator {
     needed_auxiliary_functions: Vec<(String, Box<AuxilaryFunctionGenerator>)>,
     /// Auxiliary functions for which code has been emitted.
     done_auxiliary_functions: BTreeSet<String>,
+    /// Yule functions needed in the protection layer.
+    needed_protection_layer_yul_functions: BTreeSet<YulProtectionFunction>,
+    /// Protection layer auxiliary functions needed in the current block.
+    needed_protection_auxiliary_functions: Vec<(String, Box<AuxilaryFunctionGenerator>)>,
+    /// Protection layer auxiliary functions for which code has been emitted.
+    done_protection_auxiliary_functions: BTreeSet<String>,
+    /// Returned types, need for generating store_external function
+    pub(crate) returned_types: Vec<QualifiedInstId<StructId>>,
     /// Mapping of type signature hash to type, to identify collisions.
     pub(crate) type_sig_map: BTreeMap<u32, Type>,
     /// Solidity signature for callable functions for generating JSON-ABI
@@ -210,6 +219,7 @@ impl Generator {
                 let receiver = contract.receive.map(|f| module.get_function(f));
                 let fallback = contract.fallback.map(|f| module.get_function(f));
                 self.callable_functions(ctx, &callables, receiver, fallback);
+                self.generate_protection_layer(ctx);
                 self.end_code_block(ctx);
             })
         });
@@ -535,6 +545,12 @@ impl Generator {
         }
     }
 
+    fn generate_protection_layer(&mut self, ctx: &Context) {
+        // TODO chech if auxiliary needed
+        FunctionGenerator::run_protection_generation(self, ctx);
+        FunctionGenerator::run_store_external(self, ctx);
+    }
+
     /// Generate code for a function. This delegates to the function generator.
     fn function(&mut self, ctx: &Context, fun_id: &QualifiedInstId<FunId>) {
         self.done_move_functions.insert(fun_id.clone());
@@ -569,17 +585,54 @@ impl Generator {
             }
         }
 
+        while let Some((function_name, generator)) = self.needed_protection_auxiliary_functions.pop()
+        {
+            if !self.done_protection_auxiliary_functions.contains(&function_name) {
+                emit!(ctx.writer, "function {}", function_name);
+                self.done_protection_auxiliary_functions.insert(function_name);
+                generator(self, ctx)
+            }
+        }
+
         // We finally emit code for all Yul functions which have been needed by the Move
         // or auxiliary functions.
         for fun in &self.needed_yul_functions {
             emitln!(ctx.writer, &fun.yule_def());
         }
 
-        // TODO add protection layer auxiliary functions
-        emitln!(ctx.writer, "function $IsProtected() -> r { r := sload(0x0) }");
+        for fun in &self.needed_protection_layer_yul_functions {
+            emitln!(ctx.writer, &fun.yule_def());
+        }
 
-        emitln!(ctx.writer, "function $Protect() { sstore(0x0, 1) }");
-        emitln!(ctx.writer, "function $Release() { sstore(0x0, 0) }");
+        // emitln!(ctx.writer, "function $IsProtected() -> r { r:= sload(0x0) }");
+        // emitln!(ctx.writer, "function $Protect() { sstore(0x0, 1) }");
+        // emitln!(ctx.writer, "function $Release() { sstore(0x0, 0) }");
+        // emitln!(ctx.writer, "function $SaveSigner() { sstore(0x1, caller()) }");
+        // emitln!(ctx.writer, "function $GetSigner() -> r { r:= sload(0x1) }");
+        // emitln!(ctx.writer, "function $DeleteSigner() { sstore(0x1, 0) }");
+        // emitln!(ctx.writer, "function $SaveProtectedContract(addr) { sstore(0x2, addr) }");
+        // emitln!(ctx.writer, "function $GetProtectedContract() -> r { r:= sload(0x2) }");
+        // emitln!(ctx.writer, "function $DeleteProtectedContract() { sstore(0x2, 0) }");
+        // emitln!(ctx.writer, "function $SetReentrancyFlag() { sstore(0x3, 1) }");
+        // emitln!(ctx.writer, "function $ClearReentrancyFlag() { sstore(0x3, 0) }");
+        // emitln!(ctx.writer, "function $IsReentrancyFlagSet() -> r { r:= sload(0x3) }");
+        // emitln!(ctx.writer, "function $SizeOfH() -> size { size:= sload(0x4) }");
+        // emitln!(ctx.writer, "function $IncrementH() { sstore(0x4, add(sload(0x4), 1)) }");
+        // emitln!(ctx.writer, "function $DecrementH() { sstore(0x4, sub(sload(0x4), 1)) }");
+        // emitln!(ctx.writer, "function $SizeOfT() -> size { size:= sload(0x5) }");
+        // emitln!(ctx.writer, "function $IncrementT() { sstore(0x5, add(sload(0x5), 1)) }");
+        // emitln!(ctx.writer, "function $DecrementT() { sstore(0x5, sub(sload(0x5), 1)) }");
+        // emitln!(ctx.writer, "function $NewResourceId() -> r { r:= sload(0x6) sstore(0x6, add(r, 1)) }");
+        // emitln!(ctx.writer, "function $Validate() -> flag {");
+        // ctx.writer.indent();
+        // emitln!(ctx.writer, "if $IsProtected() { $Abort(88) }");
+        // emitln!(ctx.writer, "if $IsReentrancyFlagSet() { $Abort(87) }");
+        // emitln!(ctx.writer, "if $SizeOfH() { $Abort(86) }");    
+        // emitln!(ctx.writer, "flag:= 1");
+        // ctx.writer.unindent();
+        // emitln!(ctx.writer, "}");
+
+
 
         // Empty the set of functions for next block.
         self.done_move_functions.clear();
@@ -636,12 +689,60 @@ impl Generator {
         format!("{}({})", fun.yule_name(), args.join(", "))
     }
 
+    pub(crate) fn call_protection_layer_builtin(
+        &mut self,
+        ctx: &Context,
+        fun: YulProtectionFunction,
+        args: impl Iterator<Item = String>,
+    ) {
+        emitln!(ctx.writer, "{}", self.call_protection_layer_builtin_str(ctx, fun, args))
+    }
+
+    pub(crate) fn call_protection_layer_builtin_with_result(
+        &mut self,
+        ctx: &Context,
+        prefix: &str,
+        mut results: impl Iterator<Item = String>,
+        fun: YulProtectionFunction,
+        args: impl Iterator<Item = String>,
+    ) {
+        emitln!(
+            ctx.writer,
+            "{}{} := {}",
+            prefix,
+            results.join(", "),
+            self.call_protection_layer_builtin_str(ctx, fun, args)
+        )
+    }
+
+    pub(crate) fn call_protection_layer_builtin_str(
+        &mut self,
+        _ctx: &Context,
+        fun: YulProtectionFunction,
+        mut args: impl Iterator<Item = String>,
+    ) -> String {
+        self.need_protection_layer_yul_function(fun);
+        for dep in fun.yule_deps() {
+            self.needed_protection_layer_yul_functions.insert(dep);
+        }
+        format!("{}({})", fun.yule_name(), args.join(", "))
+    }
+
     /// Indicate that a Yul function is needed.
     pub(crate) fn need_yul_function(&mut self, yul_fun: YulFunction) {
         if !self.needed_yul_functions.contains(&yul_fun) {
             self.needed_yul_functions.insert(yul_fun);
             for dep in yul_fun.yule_deps() {
                 self.need_yul_function(dep);
+            }
+        }
+    }
+
+    pub(crate) fn need_protection_layer_yul_function(&mut self, yul_fun: YulProtectionFunction) {
+        if !self.needed_protection_layer_yul_functions.contains(&yul_fun) {
+            self.needed_protection_layer_yul_functions.insert(yul_fun);
+            for dep in yul_fun.yule_deps() {
+                self.need_protection_layer_yul_function(dep);
             }
         }
     }
@@ -657,6 +758,25 @@ impl Generator {
                 .push((function_name.clone(), generator));
         }
         function_name
+    }
+
+    /// Indicate that a protection layer auxiliary function of name is needed. Return the name.
+    pub(crate) fn need_protection_auxiliary_function(
+        &mut self,
+        function_name: String,
+        generator: Box<AuxilaryFunctionGenerator>,
+    ) -> String {
+        if !self.done_protection_auxiliary_functions.contains(&function_name) {
+            self.needed_protection_auxiliary_functions
+                .push((function_name.clone(), generator));
+        }
+        function_name
+    }
+
+    pub(crate) fn add_retuned_type(&mut self, ty: QualifiedInstId<StructId>) {
+        if !self.returned_types.contains(&ty) {
+            self.returned_types.push(ty);
+        }
     }
 
     /// Indicate that a move function is needed.
@@ -718,8 +838,8 @@ impl Generator {
     pub(crate) fn type_storage_base(
         &mut self,
         ctx: &Context,
-        ty: &Type,
         category: &str,
+        ty: &Type,
         instance: String,
     ) -> String {
         let hash = self.type_hash(ctx, ty);

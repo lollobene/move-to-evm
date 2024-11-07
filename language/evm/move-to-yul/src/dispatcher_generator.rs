@@ -17,15 +17,15 @@ use move_model::{
 };
 
 use crate::{
-    attributes,
+    attributes::{self, FunctionAttribute},
     context::Context,
     solidity_ty::{
-        abi_head_sizes_sum, abi_head_sizes_vec, mangle_solidity_types, SignatureDataLocation,
-        SoliditySignature, SolidityType,
+        self, abi_head_sizes_sum, abi_head_sizes_vec, mangle_solidity_types, SignatureDataLocation, SoliditySignature, SolidityType
     },
     vectors::VECTOR_METADATA_SIZE,
     yul_functions::{substitute_placeholders, YulFunction},
     Generator,
+    protection_layer::YulProtectionFunction, 
 };
 
 // Revert reasons
@@ -39,8 +39,6 @@ pub const ABI_DECODING_INVALID_BYTE_ARRAY_OFFSET: usize = 93;
 pub const STATIC_ARRAY_SIZE_NOT_MATCH: usize = 92;
 pub const TARGET_CONTRACT_DOES_NOT_CONTAIN_CODE: usize = 91;
 pub const ABI_DECODING_STRUCT_DATA_TOO_SHORT: usize = 90;
-
-pub const REVERT_ERR_NOT_PROTECTED: usize = 89;
 
 #[derive(Debug, Clone)]
 pub(crate) struct EncodingOptions {
@@ -71,6 +69,7 @@ impl Generator {
         fallback: &Option<FunctionEnv<'_>>,
     ) {
         emitln!(ctx.writer, "if iszero(lt(calldatasize(), 4))");
+        // TODO check il selectors can collide with protection layer function protectionLayer(address,bytes)
         let mut selectors = BTreeMap::new();
         let para_vec = vec!["calldataload(0)".to_string(), "224".to_string()];
         let shr224 = self.call_builtin_str(ctx, YulFunction::Shr, para_vec.iter().cloned());
@@ -81,7 +80,7 @@ impl Generator {
                 // Here functions with reference parameters are excluded
                 if !self.is_suitable_for_dispatch(ctx, fun) {
                     ctx.env.diag(
-                        Severity::Warning,
+                        Severity::Error,
                         &fun.get_loc(),
                         "cannot dispatch this function because of unsupported parameter types",
                     );
@@ -98,6 +97,18 @@ impl Generator {
                 }
                 self.generate_dispatch_item(ctx, fun, &sig, &mut selectors);
             }
+            // Generate protectionLayer signature
+            let solidity_protection_sig = SoliditySignature::create_protect_signature();
+            //  Add the protection layer signature to the list of signatures, so this will be also added to the ABI produced
+            self.solidity_sigs.push((solidity_protection_sig.clone(), FunctionAttribute::NonPayable));
+            // Add the protection layer dispatcher item at the end of the function dispatcher
+            self.generate_protect_dispatch_item(ctx, &solidity_protection_sig);
+            // Generate externalStore signature
+            let solidity_store_external_sig = SoliditySignature::create_store_external_signature();
+            //  Add the externalStore signature to the list of signatures, so this will be also added to the ABI produced
+            self.solidity_sigs.push((solidity_store_external_sig.clone(), FunctionAttribute::NonPayable));
+            // Add the externalStore dispatcher item at the end of the function dispatcher
+            self.generate_store_external_dispatch_item(ctx, &solidity_store_external_sig);
             emitln!(ctx.writer, "default {}");
         });
         let receive_exists = self.optional_receive(ctx, receiver);
@@ -138,6 +149,111 @@ impl Generator {
         sig
     }
 
+    fn generate_protect_dispatch_item(
+        &mut self,
+        ctx: &Context,
+        solidity_sig: &SoliditySignature
+    ) {
+        let function_name = String::from("protection_layer");
+        let fun_sig = String::from("protectionLayer(address,bytes)");
+        let function_selector =
+            format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
+        emitln!(ctx.writer, "case {}", function_selector);
+        ctx.emit_block(|| {
+            emitln!(ctx.writer, "// {}", fun_sig);
+            let storage_type: Option<QualifiedInstId<StructId>> = None;
+            self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
+            let logical_param_types: Vec<Type> = vec![Type::Primitive(PrimitiveType::Address), Type::Vector(Box::new(Type::Primitive(PrimitiveType::U8)))];
+            let param_count: u8 = 2;    
+            //let decoding_fun_name = String::from("abi_decode_tuple_$address_address_bytes$_$address_address_vec$u8$$");
+            let decoding_fun_name = self.generate_abi_tuple_decoding_para(
+                ctx,
+                &solidity_sig,
+                logical_param_types,
+                false,
+            );
+            let mut params = (0..param_count).map(|i| format!("param_{}", i)).join(", ");
+            let let_params = format!("let {} := ", params);
+            emitln!(
+                ctx.writer,
+                "{}{}(4, calldatasize())",
+                let_params,
+                decoding_fun_name
+            );
+            let ret_count = 1;
+
+            let mut rets = (0..ret_count).map(|i| format!("ret_{}", i)).join(", ");
+            let let_rets = format!("let {} := ", rets);
+            params = self.add_storage_ref_param(ctx, &storage_type, params);
+            // Call the function
+            emitln!(ctx.writer, "{}{}({})", let_rets, function_name, params);
+            // Call validate function
+            // emitln!(ctx.writer, "let validate := $Validate()");
+            self.generate_validate_function(ctx);
+            let encoding_fun_name = self.generate_abi_tuple_encoding_ret(ctx, &solidity_sig, vec![Type::Primitive(PrimitiveType::Bool)]);
+            rets = format!(", {}", rets);
+            // Prepare the return values
+            self.generate_allocate_unbounded(ctx);
+            emitln!(
+                ctx.writer,
+                "let memEnd := {}(memPos{})",
+                encoding_fun_name,
+                rets
+            );
+            emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
+        });
+    }
+
+    fn generate_store_external_dispatch_item(
+        &mut self,
+        ctx: &Context,
+        solidity_sig: &SoliditySignature
+    ) {
+        let function_name = String::from("store_external");
+        let fun_sig = String::from("storeExternal(uint256)");
+        let function_selector =
+            format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
+        emitln!(ctx.writer, "case {}", function_selector);
+        ctx.emit_block(|| {
+            emitln!(ctx.writer, "// {}", fun_sig);
+            let storage_type: Option<QualifiedInstId<StructId>> = None;
+            self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
+            let logical_param_types: Vec<Type> = vec![Type::Primitive(PrimitiveType::U256)];
+            let param_count: u8 = 1;
+
+            let decoding_fun_name = self.generate_abi_tuple_decoding_para(
+                ctx,
+                &solidity_sig,
+                logical_param_types,
+                false,
+            );
+            let mut params = (0..param_count).map(|i| format!("param_{}", i)).join(", ");
+            let let_params = format!("let {} := ", params);
+            emitln!(
+                ctx.writer,
+                "{}{}(4, calldatasize())",
+                let_params,
+                decoding_fun_name
+            );
+            
+            params = self.add_storage_ref_param(ctx, &storage_type, params);
+            // Call the function
+            emitln!(ctx.writer, "{}({})", function_name, params);
+
+            let encoding_fun_name = self.generate_abi_tuple_encoding_ret(ctx, &solidity_sig, vec![]);
+            let rets = format!("");
+            // Prepare the return values
+            self.generate_allocate_unbounded(ctx);
+            emitln!(
+                ctx.writer,
+                "let memEnd := {}(memPos{})",
+                encoding_fun_name,
+                rets
+            );
+            emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
+        });
+    }
+
     fn generate_dispatch_item(
         &mut self,
         ctx: &Context,
@@ -165,9 +281,10 @@ impl Generator {
         emitln!(ctx.writer, "case {}", function_selector);
         ctx.emit_block(|| {
             emitln!(ctx.writer, "// {}", fun_sig);
+            // TODO maybe delete should_be_protected function, or check if it is needed, if the case rename it
             // Check if the function should be protected by Protection Layer
             if self.should_be_protected(ctx, fun) {
-                self.generate_protection_layer_check(ctx, REVERT_ERR_NOT_PROTECTED);
+                self.generate_protection_layer_check(ctx);
                 ctx.env.diag(
                     Severity::Warning,
                     &fun.get_loc(),
@@ -176,18 +293,20 @@ impl Generator {
                 emitln!(ctx.writer, "// function should be protected by Protection Layer");
             }
             if self.should_check_input_ref(fun) {
+                ctx.env.diag(
+                    Severity::Warning,
+                    &fun.get_loc(),
+                    "function should check incoming reference",
+                );
                 emitln!(ctx.writer, "// function should check incoming reference");
-            }
-            if self.should_check_input_resource(ctx, fun) {
-                emitln!(ctx.writer, "// function should check incoming resource");
-            }        
+            }      
             // TODO: check delegate call
             if !attributes::is_payable_fun(fun) {
                 self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
             }
             // Decoding
             let mut logical_param_types = fun.get_parameter_types();
-            let storage_type = if !logical_param_types.is_empty()
+            let storage_type: Option<QualifiedInstId<StructId>> = if !logical_param_types.is_empty()
                 && ctx.is_storage_ref(&self.storage_type, &logical_param_types[0])
             {
                 // Skip the storage reference parameter.
@@ -214,6 +333,30 @@ impl Generator {
                     decoding_fun_name
                 );
             }
+            // TODO emit code for res_in protection layer or external in
+            // find out how to check which are the input parameters that are resources 
+            // and in which position of the parameters,
+            // then pass them to the resIn function
+            if self.should_check_input_resource(ctx, fun) {
+                ctx.env.diag(
+                    Severity::Warning,
+                    &fun.get_loc(),
+                    "function should check incoming resource",
+                );
+                emitln!(ctx.writer, "// function should check incoming resource");
+            }  
+
+            for ty in fun.get_parameter_types().iter().enumerate() {
+                if ty.1.is_struct() && self.is_module_defined_resource(ty.1.get_struct_id(ctx.env).unwrap(), fun){
+                    let param_name = format!("param_{}", ty.0);
+                    emitln!(ctx.writer, "// {}", param_name);
+                    emitln!(ctx.writer, "let res{} := $ResIn({})", ty.0, param_name);
+                    self.generate_res_in(ty.1.get_struct_id(ctx.env).unwrap());
+                }
+                else {continue};
+            }
+                    
+
             let ret_count = solidity_sig.ret_types.len();
             let mut rets = "".to_string();
             let mut let_rets = "".to_string();
@@ -225,20 +368,72 @@ impl Generator {
             params = self.add_storage_ref_param(ctx, &storage_type, params);
             // Call the function
             emitln!(ctx.writer, "{}{}({})", let_rets, function_name, params);
+
+            let encoding_fun_name;
+            if self.should_check_output_resource(ctx, fun) {
+                ctx.env.diag(
+                    Severity::Warning,
+                    &fun.get_loc(),
+                    "function should check outgoing resource",
+                );
+                emitln!(ctx.writer, "// function should check outgoing resource");
+                let options = EncodingOptions {
+                    padded: false,
+                    in_place: true,
+                };
+                encoding_fun_name = self.generate_abi_encoding_primitive_type(&SolidityType::Primitive(solidity_ty::SolidityPrimitiveType::Uint(256)), options)
+            } else {
+                encoding_fun_name = self.generate_abi_tuple_encoding_ret(ctx, solidity_sig, fun.get_return_types());
+            }
             // Encoding the return values
-            let encoding_fun_name =
-                self.generate_abi_tuple_encoding_ret(ctx, solidity_sig, fun.get_return_types());
             if ret_count > 0 {
                 rets = format!(", {}", rets);
             }
+            // TODO emit code for res_out protection layer or external out
+            // find out how to check which are the output parameters that are resources
+            // and in which position of the returned parameters
+            // then pass them to the resOut function
+
+            // idea:
+            let rets_vec = rets.split(", ").collect_vec();
+            for ty in fun.get_return_types().iter().enumerate() {
+                // if ty.1.is_struct() && self.is_module_defined_resource(ty.1.get_struct_id(ctx.env).unwrap(), fun){
+                //     // TODO implement resOut function
+                //     let ret_name = rets_vec[ty.0+1];
+                //     emitln!(ctx.writer, "// {}", ret_name);
+                //     // TODO implement resOut function
+                //     FunctionGenerator::run_res_out_generation(self, ctx, fun, ty.1.get_struct_id(ctx.env).unwrap(), ret_name.to_string());
+                // }
+                if ty.1.is_struct() && self.is_module_defined_resource(ty.1.get_struct_id(ctx.env).unwrap(), fun){
+                    let ret_name = rets_vec[ty.0+1];
+                    emitln!(ctx.writer, "// {}", ret_name);
+                    emitln!(ctx.writer, "let res_id_{} := $ResOut({})", ty.0, ret_name);
+                    self.add_retuned_type(ty.1.get_struct_id(ctx.env).unwrap());
+                    self.generate_res_out(ty.1.get_struct_id(ctx.env).unwrap());
+                }
+                else {continue};
+            }
+
             // Prepare the return values
             self.generate_allocate_unbounded(ctx);
-            emitln!(
-                ctx.writer,
-                "let memEnd := {}(memPos{})",
-                encoding_fun_name,
-                rets
-            );
+            if self.should_check_output_resource(ctx, fun) {
+                emitln!(
+                    ctx.writer,
+                    "{}(res_id_0, memPos)",
+                    encoding_fun_name
+                );
+                emitln!(
+                    ctx.writer,
+                    "let memEnd := add(memPos, 32)"
+                )
+            } else {
+                emitln!(
+                    ctx.writer,
+                    "let memEnd := {}(memPos{})",
+                    encoding_fun_name,
+                    rets
+                );
+            }
             emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
         });
     }
@@ -267,20 +462,20 @@ impl Generator {
     fn should_be_protected(&self, ctx: &Context, fun: &FunctionEnv) -> bool {
         // get parameter types
         let param_types = fun.get_parameter_types();
-        // filter parameter types with no drop ability
-        let params_flag = param_types.into_iter().any(|ty| ty.is_reference());
+        // check if any reference parameter
+        let references_flag = param_types.into_iter().any(|ty| ty.is_reference());
 
         // get return types
         let returned_types = fun.get_return_types();
         let returns_flag = returned_types.into_iter().any(|ty| ty.is_struct() && !(ty.get_struct(ctx.env).expect("struct type").0.get_abilities().has_drop()));
-        params_flag || returns_flag
+        references_flag || returns_flag
     }
 
     /// Determine wheter the function should check input reference
     fn should_check_input_ref(&self, fun: &FunctionEnv) -> bool {
         // get parameter types
         let param_types = fun.get_parameter_types();
-        // filter parameter types with no drop ability
+        // check if any of the parameters is a reference
         param_types.into_iter().any(|ty| ty.is_reference())   
     }
 
@@ -294,7 +489,35 @@ impl Generator {
             .into_iter()
             .filter(|ty| ty.is_struct())
             .map(|ty| ty.get_struct_id(ctx.env).unwrap());
-        struct_ids_iter.any(|struct_id| self.is_module_defined_resource(struct_id, fun))
+        let flag = struct_ids_iter.any(|struct_id| self.is_module_defined_resource(struct_id, fun));
+        if flag {
+            // TODO check if incoming resource exists in either Hot or Transient
+            // here we need to generate the yul code to read the entire resource from transient and hot
+            // TODO if exists, delete if from Hot and Transient storage and put it in memory and decrease the counters
+        }
+        flag
+    }
+
+    /// Determine whether the function should check output resource
+    fn should_check_output_resource(&mut self, ctx: &Context, fun: &FunctionEnv) -> bool {
+        // get return types
+        let returned_types = fun.get_return_types();
+        // filter return types with module defined resource
+        let struct_ids_iter= returned_types
+            .into_iter()
+            .filter(|ty| ty.is_struct() && self.is_module_defined_resource(ty.get_struct_id(ctx.env).unwrap(), fun))
+            .map(|ty| ty.get_struct_id(ctx.env).unwrap());
+        // let module_defined_returned_structs = struct_ids_iter.filter(|struct_id| self.is_module_defined_resource(struct_id, fun));
+        if struct_ids_iter.count() > 0 {
+            // TODO add resource to Hot and Transient storage
+            // here we need to generate the yul code to write the entire resource to transient and hot
+            // We know that if the function returns a resource, then the compiler already generated auxiliary functions
+            // TODO increase the counters
+            // FunctionGenerator::run_res_out_generation(self, ctx, fun, struct_ids_iter.collect_vec());
+            true
+        } else {
+            false
+        }
     }
 
     fn is_module_defined_resource(&self, struct_id: QualifiedInstId<StructId>, fun: &FunctionEnv) -> bool {
@@ -421,17 +644,109 @@ impl Generator {
     }
 
     /// Generate the protection layer check for the function
-    fn generate_protection_layer_check(&mut self, ctx: &Context, err_code: TempIndex) {
-        emitln!(ctx.writer, "if iszero($IsProtected())");
+    fn generate_protection_layer_check(&mut self, ctx: &Context) {
+        // emitln!(ctx.writer, "if iszero($IsProtected())");
+        // ctx.emit_block(|| {
+        //     self.call_builtin(
+        //         ctx,
+        //         YulFunction::Abort,
+        //         std::iter::once(err_code.to_string()),
+        //     );
+        // });
         ctx.emit_block(|| {
-            self.call_builtin(
+            self.call_protection_layer_builtin(
                 ctx,
-                YulFunction::Abort,
-                std::iter::once(err_code.to_string()),
+                YulProtectionFunction::AbortNotProtected,
+                std::iter::empty(),
             );
         });
     }
 
+    fn generate_res_out(&mut self, struct_id: QualifiedInstId<StructId>) {
+        let function_name = String::from("$ResOut");
+        let param_name = String::from("res");
+        let generate_fun = move |gen: &mut Generator, ctx: &Context|{
+            emit!(ctx.writer, "(res) -> $res_id ");
+            ctx.emit_block(||{
+                // Increase resource ID
+                // emitln!(ctx.writer, "$res_id := $NewResourceId()");
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "", 
+                    std::iter::once("$res_id".to_string()), 
+                    YulProtectionFunction::NewResourceId,
+                    std::iter::empty(),
+                );
+                // Increase size of H
+                // emitln!(ctx.writer, "$IncrementH()");
+                gen.call_protection_layer_builtin(
+                    ctx, 
+                    YulProtectionFunction::IncrementH, 
+                    std::iter::empty(),
+                );
+                
+                // TODO: generate the storage key using the resID, such that
+                // we allow multiple external resources
+                // emitln!(ctx.writer, "let $t0 := $GetSigner()");
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once("$t0".to_string()), 
+                    YulProtectionFunction::GetSigner, 
+                    std::iter::empty(),
+                );
+
+                // Save the resource to external
+                gen.move_to_transient(
+                    ctx,
+                    &struct_id,
+                    "$t0".to_string(),
+                    param_name
+                );
+            });
+        };
+        self.need_protection_auxiliary_function(function_name, Box::new(generate_fun));        
+    }
+
+    fn generate_res_in(&mut self, struct_id: QualifiedInstId<StructId>) {
+        let function_name = String::from("$ResIn");
+        let param_name = String::from("resId");
+        let generate_fun = move |gen: &mut Generator, ctx: &Context|{
+            emit!(ctx.writer, "({}) -> $res ", param_name);
+            ctx.emit_block(||{
+                // Decrease size of H
+                // emitln!(ctx.writer, "$DecrementH()");
+                gen.call_protection_layer_builtin(
+                    ctx, 
+                    YulProtectionFunction::DecrementH, 
+                    std::iter::empty(),
+                );
+                
+                // emitln!(ctx.writer, "let $t0 := $GetSigner()");
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once("$t0".to_string()), 
+                    YulProtectionFunction::GetSigner, 
+                    std::iter::empty(),
+                );
+                gen.move_from_transient(ctx, &struct_id, "$t0".to_string());
+            });
+        };
+        self.need_protection_auxiliary_function(function_name, Box::new(generate_fun));
+    }
+    
+    fn generate_validate_function(&mut self, ctx: &Context) {
+        
+        self.call_protection_layer_builtin_with_result(
+            ctx,
+            "let ",
+            std::iter::once("flag".to_string()),
+            YulProtectionFunction::Validate,
+            std::iter::empty(),
+        );
+
+    }
     /// Generate the code to check value
     fn generate_call_value_check(&mut self, ctx: &Context, err_code: TempIndex) {
         emitln!(ctx.writer, "if callvalue()");
