@@ -11,26 +11,25 @@
  */
 
 /**
-    * @title MoveToEvm
-    * @dev The MoveToEvm contract is a test contract that allows to move resources from one contract to another
-    * and check if the contract is linear
-*/
+ * @title MoveToEvm
+ * @dev The MoveToEvm contract is a test contract that allows to move resources from one contract to another
+ * and check if the contract is linear
+ */
 
 /**
-    * @dev The ILinearCall interface is used to check if the contract is linear
-    * and to call the linearCall function
+ * @dev The ILinearCall interface is used to check if the contract is linear
+ * and to call the linearCall function
  */
-pragma solidity 0.8.4;
+pragma solidity >=0.8.11;
 
 interface ILinearCall {
     function linearCall() external;
 }
 
 contract MoveToEvm {
-    
-    mapping (address => Coin) public resources;
-    mapping (address => Coin) public externalResources;
-    mapping (address => Coin) public temp;
+    mapping(address => Coin) public resources;
+    mapping(address => Coin) public externalResources;
+    mapping(address => Coin) public temp;
 
     bool linearity = false;
     uint tempLenght = 0;
@@ -63,12 +62,12 @@ contract MoveToEvm {
     }
 
     modifier isLinear() {
-        require(linearity == true, "Breaking linear");
+        require(linearity == true, 'Breaking linear');
         _;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Caller is not the owner");
+        require(msg.sender == owner, 'Caller is not the owner');
         _;
     }
 
@@ -93,7 +92,10 @@ contract MoveToEvm {
     }
 
     function setCoin(Coin memory _value) public isLinear {
-        require(temp[msg.sender].value == _value.value, "Resource does not exist");
+        require(
+            temp[msg.sender].value == _value.value,
+            'Resource does not exist'
+        );
         moveTo(msg.sender, _value);
     }
 
@@ -101,7 +103,7 @@ contract MoveToEvm {
         assert(temp[msg.sender].res.exists != true);
     }
 
-    function mint() onlyOwner public {
+    function mint() public onlyOwner {
         moveTo(msg.sender, createCoin(100));
     }
 
@@ -125,14 +127,17 @@ contract MoveToEvm {
 
     // MOVE NATIVE FUNCTIONS
     function moveTo(address addr, Coin memory _value) private {
-        require(resources[addr].res.exists != true, "Resource already exists");
+        require(resources[addr].res.exists != true, 'Resource already exists');
         _value.res.exists = true;
         resources[addr] = _value;
     }
 
     function moveFrom(address addr) private returns (Coin memory) {
-        require(resources[addr].res.exists == true, "Resource does not exist");
-        require(resources[addr].res.isBorrowed == false, "Resource is borrowed");
+        require(resources[addr].res.exists == true, 'Resource does not exist');
+        require(
+            resources[addr].res.isBorrowed == false,
+            'Resource is borrowed'
+        );
         Coin memory s = resources[addr];
         resources[addr] = emptyResource();
         return s;
@@ -152,5 +157,4 @@ contract MoveToEvm {
         return s;
     }
     */
-    
-} 
+}
