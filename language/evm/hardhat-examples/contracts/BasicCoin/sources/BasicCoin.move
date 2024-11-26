@@ -1,57 +1,83 @@
 #[evm_contract]
 module Evm::basic_coin {
+    use Evm::Evm::{sender, sign, /*address_of,*/ protection_layer_signer_address};
+    use Evm::U256::{U256, add, sub, zero, u256_from_u128};
+
+    struct Coin has key {
+        value: U256
+    }
+
+    struct MintCapability has key {}
     
-    use std::signer;
-
-    struct Coin<phantom CoinType> has key {
-        value: u64
+    #[create(sig=b"constructor()")]
+    public fun create() {
+        move_to(&sign(sender()), MintCapability {});
     }
 
-    struct MintCapability<phantom CoinType> has key {}
-
-    public fun register<CoinType>(account: &signer) {
-        let coin = Coin<CoinType> { value: 0 };
-        move_to(account, coin);
+    #[callable(sig=b"hasMintCapability(address) returns (bool)"), view]
+    public fun has_mint_capability(account: address): bool {
+        exists<MintCapability>(account)
     }
 
-    public entry fun transfer<CoinType>(
-        from: address,
+    #[callable(sig=b"mintCapability()"), view]
+    public fun mint_capability() {
+        let account_addr = protection_layer_signer_address();
+        assert!(exists<MintCapability>(account_addr), 0);
+    }
+
+
+    // Here the 'from: &signer' parameter was removed 
+    // and used protection_layer_signer_address() instead
+    #[callable(sig=b"register()")]
+    public fun register() {
+        let acc = protection_layer_signer_address();
+        let coin = Coin { value: zero() };
+        move_to(&sign(acc), coin);
+    }
+
+    #[callable(sig=b"transfer(address, uint256)")]
+    public fun transfer(
         to: address,
-        amount: u64,
+        amount: U256,
     ) acquires Coin {
-        let sender_coin = borrow_global_mut<Coin<CoinType>>(from);
-        sender_coin.value = sender_coin.value - amount;
-        
-        let receiver_coin = borrow_global_mut<Coin<CoinType>>(to);
-        receiver_coin.value = receiver_coin.value - amount;
+        let sender_coin = withdraw(amount);
+        deposit(to, sender_coin);
     }
 
-    public fun withdraw<CoinType> (
-        from: &signer,
-        amount: u64
-    ): Coin<CoinType> acquires Coin {
-        let account_addr = signer::address_of(from);
-        let coin = borrow_global_mut<Coin<CoinType>>(account_addr);
-        coin.value = coin.value - amount;
-        Coin<CoinType> { value: amount }
+    // Here the 'from: &signer' parameter was removed 
+    // and used protection_layer_signer_address() instead
+    #[callable(sig=b"withdraw(uint256) returns (uint256)")]
+    public fun withdraw (
+        amount: U256
+    ): Coin acquires Coin {
+        let account_addr = protection_layer_signer_address();
+        let coin = borrow_global_mut<Coin>(account_addr);
+        coin.value = sub(coin.value, amount);
+        Coin { value: amount }
     }
 
-    public fun deposit<CoinType> (
+    #[callable(sig=b"deposit(address, uint256)")]
+    public fun deposit (
         to: address,
-        coin: Coin<CoinType>
+        coin: Coin
     ) acquires Coin {
-        let Coin<CoinType> { value } = coin;
-        let coin = borrow_global_mut<Coin<CoinType>>(to);
-        coin.value = coin.value + value;
+        let Coin { value } = coin;
+        let coin = borrow_global_mut<Coin>(to);
+        coin.value = add(coin.value, value);
     }
 
-    public fun mint<CoinType>(account: &signer, amount: u64): Coin<CoinType> {
-        let sender_addr = signer::address_of(account);
-        assert!(exists<MintCapability<CoinType>>(sender_addr), 0);
-        Coin<CoinType> { value: amount }
+    // Here the 'from: &signer' parameter was removed 
+    // and used protection_layer_signer_address() instead
+    #[callable(sig=b"mint(uint256) returns (uint256)")]
+    public fun mint(amount: U256): Coin {
+        let account_addr = protection_layer_signer_address();
+        assert!(exists<MintCapability>(account_addr), 0);
+        Coin { value: amount }
     }
 
-    public fun initialize<CoinType>(account: &signer) {
-        move_to(account, MintCapability<CoinType> {});
+    #[callable(sig=b"getBalance(address) returns (uint256)"), view]
+    public fun get_balance(account: address): U256 acquires Coin{
+        let coin = borrow_global<Coin>(account);
+        coin.value
     }
 }
