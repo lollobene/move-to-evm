@@ -18,6 +18,10 @@ module Evm::Evm {
         msg_value()
     }
 
+    public native fun address_of(acc: &signer): address;
+
+    public native fun protection_layer_signer_address(): address;
+
     /// Returns the balance, in Wei, of any account.
     public native fun balance(addr: address): U256;
 
