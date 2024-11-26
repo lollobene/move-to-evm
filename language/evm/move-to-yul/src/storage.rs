@@ -21,6 +21,308 @@ impl Generator {
         self.move_to_addr(ctx, struct_id, addr, value)
     }
 
+    /// Move resource from memory to external of protection layer.
+    pub(crate) fn move_to_external(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        signer_ref: String,
+        value: String,
+    ) {
+        // let addr = self.call_builtin_str(ctx, YulFunction::LoadU256, std::iter::once(signer_ref));
+        self.move_to_external_with_clean_flag(ctx, struct_id, signer_ref, value, false)
+    }
+
+    /// Move resource from memory to transient storage.
+    pub(crate) fn move_to_transient(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        signer_ref: String,
+        value: String,
+    ) {
+        // let addr = self.call_builtin_str(ctx, YulFunction::LoadU256, std::iter::once(signer_ref));
+        self.move_to_transient_with_clean_flag(ctx, struct_id, signer_ref, value, false);
+    }
+
+    pub(crate) fn move_to_transient_with_clean_flag(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        addr: String,
+        value: String,
+        clean_flag: bool,
+    ) {
+        emitln!(ctx.writer, "//move to transient with clean flag");
+        let base_offset = "$transient_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                addr,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is set, abort. Otherwise set this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer, 
+            "if {} {{\n  {}\n}}", 
+            exists_call, 
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedStorageStore,
+            vec![base_offset.to_string(), "true".to_string()].into_iter(),
+        );
+
+        // Move the struct to storage.
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the destination address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $dst := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+            emitln!(ctx.writer, "let $src := {}", value);
+            // Perform the move.
+            self.move_struct_to_storage(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                clean_flag,
+            );
+        });
+    }
+
+    pub(crate) fn move_to_external_with_clean_flag(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        addr: String,
+        value: String,
+        clean_flag: bool,
+    ) {
+        emitln!(ctx.writer, "//move to external with clean flag");
+        let base_offset = "$external_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${EXTERNAL_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                addr,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is set, abort. Otherwise set this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer, 
+            "if {} {{\n  {}\n}}", 
+            exists_call, 
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedStorageStore,
+            vec![base_offset.to_string(), "true".to_string()].into_iter(),
+        );
+
+        // Move the struct to storage.
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the destination address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $dst := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+            emitln!(ctx.writer, "let $src := {}", value);
+            // Perform the move.
+            self.move_struct_to_storage(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                clean_flag,
+            );
+        });
+
+    }
+
+    pub(crate) fn move_from_external(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        addr: String,
+    ) {
+        emitln!(ctx.writer, "//move from external");
+        // Obtain the storage base offset for this resource.
+        let base_offset = "$external_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${EXTERNAL_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                addr,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is not set, abort. Otherwise clear this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx, 
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer,
+            "if iszero({}) {{\n  {}\n}}",
+            exists_call,
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedStorageStore,
+            vec![base_offset.to_string(), "false".to_string()].into_iter(),
+        );
+
+        // Move the struct out of storage into memory
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the src address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $src := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+
+            // Perform the move and assign the result.
+            emitln!(ctx.writer, "let $dst");
+            self.move_struct_to_memory(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                true,
+            );
+            emitln!(
+                ctx.writer,
+                "$res := $dst"
+            );
+        })
+    }
+
+    pub(crate) fn move_from_transient(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        addr: String,
+    ) {
+
+        emitln!(ctx.writer, "//move from transient");
+        // Obtain the storage base offset for this resource.
+        let base_offset = "$transient_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                addr,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is not set, abort. Otherwise clear this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx, 
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer,
+            "if iszero({}) {{\n  {}\n}}",
+            exists_call,
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedStorageStore,
+            vec![base_offset.to_string(), "false".to_string()].into_iter(),
+        );
+
+        // Move the struct out of storage into memory
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the src address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $src := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+
+            // Perform the move and assign the result.
+            emitln!(ctx.writer, "let $dst");
+            self.move_struct_to_memory(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                true,
+            );
+            emitln!(
+                ctx.writer,
+                "$res := $dst"
+            );
+        })
+
+    }
     /// Move resource from memory to storage, with direct address.
     pub(crate) fn move_to_addr(
         &mut self,
@@ -35,8 +337,8 @@ impl Generator {
                 "let $base_offset := {}",
                 self.type_storage_base(
                     ctx,
-                    &struct_id.to_type(),
                     "${RESOURCE_STORAGE_CATEGORY}",
+                    &struct_id.to_type(),
                     addr,
                 )
             );
@@ -357,8 +659,8 @@ impl Generator {
             "let $base_offset := {}",
             self.type_storage_base(
                 ctx,
-                &struct_id.to_type(),
                 "${RESOURCE_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
                 addr,
             )
         );
@@ -401,8 +703,8 @@ impl Generator {
         // Obtain the storage base offset for this resource.
         let base_offset = self.type_storage_base(
             ctx,
-            &struct_id.to_type(),
             "${RESOURCE_STORAGE_CATEGORY}",
+            &struct_id.to_type(),
             addr,
         );
         // Load the exists flag and store it into destination.

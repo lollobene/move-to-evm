@@ -1,11 +1,10 @@
 //SPDX-License-Identifier: MIT
 
-import "./MoveToEvm.sol";
+import './MoveToEvm.sol';
 
-pragma solidity 0.8.4;
+pragma solidity >=0.8.11;
 
 contract LinearCall {
-
     CoinWrapper myCoin;
 
     struct CoinWrapper {

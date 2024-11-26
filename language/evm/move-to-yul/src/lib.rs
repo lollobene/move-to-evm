@@ -24,6 +24,7 @@ mod storage;
 mod tables;
 mod vectors;
 mod yul_functions;
+mod protection_layer;
 
 use crate::{generator::Generator, options::Options};
 use anyhow::anyhow;

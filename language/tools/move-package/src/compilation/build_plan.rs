@@ -277,8 +277,9 @@ impl BuildPlan {
             .iter()
             .chain(sources.iter())
             .chain(dependencies.iter());
-
-        if !should_recompile(all_sources, output_paths)? {
+        
+        writeln!(writer, "{} {}", "FORCING RECOMPILATION:".bold().green(), self.resolution_graph.build_options.force_recompilation.to_string().bold().red())?;
+        if !should_recompile(all_sources, output_paths)? && !self.resolution_graph.build_options.force_recompilation {
             writeln!(writer, "{} {}", "CACHED".bold().green(), package_names)?;
             return Ok(());
         }
