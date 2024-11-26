@@ -1,5 +1,5 @@
 module deploy_address::B {
-    use deploy_address::A::{Self, RA, giveMe};
+    use deploy_address::A::{RA, giveMe};
 
     struct RB has key{
         ra: RA
