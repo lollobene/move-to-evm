@@ -210,7 +210,7 @@ impl NativeFunctions {
                 ctx.writer,
                 "\
 (addr, amount, cb) -> success{
-  log0(add(cb, 0x20), 0x24)
+  // log0(add(cb, 0x20), 0x24)
   // success := true
   success := call(gas(), caller(), 0, add(cb, 0x20), 0x24, 0, 0)
 }"

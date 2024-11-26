@@ -185,6 +185,7 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
+        returned_value: String
     ) {
         emitln!(ctx.writer, "//move from external");
         // Obtain the storage base offset for this resource.
@@ -246,7 +247,8 @@ impl Generator {
             );
             emitln!(
                 ctx.writer,
-                "$res := $dst"
+                "{} := $dst",
+                returned_value
             );
         })
     }
@@ -256,6 +258,7 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
+        returned_value: String,
     ) {
 
         emitln!(ctx.writer, "//move from transient");
@@ -318,7 +321,8 @@ impl Generator {
             );
             emitln!(
                 ctx.writer,
-                "$res := $dst"
+                "{} := $dst",
+                returned_value
             );
         })
 
