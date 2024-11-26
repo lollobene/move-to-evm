@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    attributes, context::Context, events, functions::FunctionGenerator, yul_functions::YulFunction,
+    attributes, context::Context, events, functions::FunctionGenerator, yul_functions::YulFunction, protection_layer::YulProtectionFunction
 };
 use move_model::{
     ast::ModuleName,
@@ -235,6 +235,31 @@ impl NativeFunctions {
 (addr) -> signer {
   signer := addr
 }"
+            );
+        });
+
+        self.define(ctx, evm, "address_of", |_, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+                "\
+                (signer) -> addr {
+                  addr := signer
+                }");
+        });
+
+        self.define(ctx, evm, "protection_layer_signer_address", |gen, ctx: &Context, _| {
+            emitln!(
+                ctx.writer,
+            "\
+() -> signer {{
+    signer := {}
+}}",
+        
+                gen.parent.call_protection_layer_builtin_str(
+                    ctx,
+                    YulProtectionFunction::GetSigner, 
+                    std::iter::empty()
+                )
             );
         });
 

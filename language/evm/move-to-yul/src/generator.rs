@@ -219,7 +219,6 @@ impl Generator {
                 let receiver = contract.receive.map(|f| module.get_function(f));
                 let fallback = contract.fallback.map(|f| module.get_function(f));
                 self.callable_functions(ctx, &callables, receiver, fallback);
-                self.generate_protection_layer(ctx);
                 self.end_code_block(ctx);
             })
         });
@@ -543,12 +542,13 @@ impl Generator {
             ctx.check_no_generics(fun);
             self.function(ctx, &fun.get_qualified_id().instantiate(vec![]))
         }
+        self.generate_protection_layer(ctx);
     }
 
     fn generate_protection_layer(&mut self, ctx: &Context) {
-        // TODO chech if auxiliary needed
         FunctionGenerator::run_protection_generation(self, ctx);
         FunctionGenerator::run_store_external(self, ctx);
+        FunctionGenerator::run_unstore_external(self, ctx);
     }
 
     /// Generate code for a function. This delegates to the function generator.
@@ -603,36 +603,6 @@ impl Generator {
         for fun in &self.needed_protection_layer_yul_functions {
             emitln!(ctx.writer, &fun.yule_def());
         }
-
-        // emitln!(ctx.writer, "function $IsProtected() -> r { r:= sload(0x0) }");
-        // emitln!(ctx.writer, "function $Protect() { sstore(0x0, 1) }");
-        // emitln!(ctx.writer, "function $Release() { sstore(0x0, 0) }");
-        // emitln!(ctx.writer, "function $SaveSigner() { sstore(0x1, caller()) }");
-        // emitln!(ctx.writer, "function $GetSigner() -> r { r:= sload(0x1) }");
-        // emitln!(ctx.writer, "function $DeleteSigner() { sstore(0x1, 0) }");
-        // emitln!(ctx.writer, "function $SaveProtectedContract(addr) { sstore(0x2, addr) }");
-        // emitln!(ctx.writer, "function $GetProtectedContract() -> r { r:= sload(0x2) }");
-        // emitln!(ctx.writer, "function $DeleteProtectedContract() { sstore(0x2, 0) }");
-        // emitln!(ctx.writer, "function $SetReentrancyFlag() { sstore(0x3, 1) }");
-        // emitln!(ctx.writer, "function $ClearReentrancyFlag() { sstore(0x3, 0) }");
-        // emitln!(ctx.writer, "function $IsReentrancyFlagSet() -> r { r:= sload(0x3) }");
-        // emitln!(ctx.writer, "function $SizeOfH() -> size { size:= sload(0x4) }");
-        // emitln!(ctx.writer, "function $IncrementH() { sstore(0x4, add(sload(0x4), 1)) }");
-        // emitln!(ctx.writer, "function $DecrementH() { sstore(0x4, sub(sload(0x4), 1)) }");
-        // emitln!(ctx.writer, "function $SizeOfT() -> size { size:= sload(0x5) }");
-        // emitln!(ctx.writer, "function $IncrementT() { sstore(0x5, add(sload(0x5), 1)) }");
-        // emitln!(ctx.writer, "function $DecrementT() { sstore(0x5, sub(sload(0x5), 1)) }");
-        // emitln!(ctx.writer, "function $NewResourceId() -> r { r:= sload(0x6) sstore(0x6, add(r, 1)) }");
-        // emitln!(ctx.writer, "function $Validate() -> flag {");
-        // ctx.writer.indent();
-        // emitln!(ctx.writer, "if $IsProtected() { $Abort(88) }");
-        // emitln!(ctx.writer, "if $IsReentrancyFlagSet() { $Abort(87) }");
-        // emitln!(ctx.writer, "if $SizeOfH() { $Abort(86) }");    
-        // emitln!(ctx.writer, "flag:= 1");
-        // ctx.writer.unindent();
-        // emitln!(ctx.writer, "}");
-
-
 
         // Empty the set of functions for next block.
         self.done_move_functions.clear();

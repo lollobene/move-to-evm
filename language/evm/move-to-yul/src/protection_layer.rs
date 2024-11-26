@@ -2,6 +2,8 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// use crate::yul_functions::YulFunction::{ Malloc, Abort };
+
 macro_rules! protection_layer_functions {
     ($($name:ident: $def:literal $(dep $dep:ident)*),* $(, )?) => {
         #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, Hash)]
@@ -146,32 +148,95 @@ Validate: "() -> flag {
     flag := true
 }" dep AbortProtected dep SizeOFH dep SizeOfT dep IsReentrancyFlagSet dep GetSigner dep GetProtectedContract dep Abort2,
 
+// Those are needed to store type hash when a resource is returned
+StoreTypeHash: "(resId, typeHash) {
+    let base := $Malloc2(0x40)
+    mstore(base, resId)
+    mstore(add(base, 0x20), 0x00)
+    let key := keccak256(base, 0x40)
+    mstore(base, key)
+    log0(base, 0x20)
+    sstore(key, typeHash)
+}" dep Malloc2,
 
-ResIn: "(id) -> res {
-    if iszero($IsProtected()) {
-        $Abort2(6)
-    }
-    // assert type of resource we are getting as input
-    // get resource
-    // decrement size of Hot and Transient
-    $DecrementH()
-    $DecrementT()
-    // delete resource from storage of Hot and Transient
-    // return resource
-    res := 0
-}" dep IsProtected dep DecrementH dep DecrementT dep Abort2,
+GetTypeHash: "(resId) -> typeHash {
+    let base := $Malloc2(0x40)
+    mstore(base, resId)
+    mstore(add(base, 0x20), 0x00)
+    let key := keccak256(base, 0x40)
+    mstore(base, key)
+    log0(base, 0x20)
+    typeHash := sload(key)
+}" dep Malloc2,
 
-ResOut: "(res) -> id {
-    if iszero($IsProtected()) {
-        $Abort2(6)
+RemoveTypeHash: "(resId) {
+    let base := $Malloc2(0x40)
+    mstore(base, resId)
+    mstore(add(base, 0x20), 0x00)
+    let key := keccak256(base, 0x40)
+    mstore(base, key)
+    log0(base, 0x20)
+    sstore(key, 0)
+}" dep Malloc2,
+
+ComputeHash: "(addr, resId) -> hash {
+    let base := $Malloc2(0x40)
+    mstore(base, addr)
+    mstore(add(base, 0x20), resId)
+    hash := keccak256(base, 0x00)
+}" dep Malloc2,
+
+AbiDecodeProtectionLayer: "(headStart, dataEnd) -> value0, value1 {
+    if slt(sub(dataEnd, headStart), 64) { $Abort2(7) }
+    {
+        let offset := 0
+        value0 := $AbiDecodeAddress(add(headStart, offset), dataEnd)
     }
-    // assert type of resource we are getting as input
-    // increment size of Hot and Transient
-    $IncrementH()
-    $IncrementT()
-    // store resource in storage of Hot and Transient
-    let $t0 := $MakePtr(false, $GetSigner())
-    // return id of resource
-    id := 0
-}" dep IsProtected dep IncrementH dep IncrementT dep Abort2,
+    {
+        let offset := calldataload(add(headStart, 32))
+        if gt(offset, 0xffffffffffffffff) { $Abort2(8) }
+        value1 := $AbiDecodeBytesMemoryPtr(add(headStart, offset), dataEnd)
+    }
+
+}" dep Abort2 dep AbiDecodeAddress dep AbiDecodeBytesMemoryPtr,
+AbiDecodeAddress: "(offset, end) -> value {
+    value := calldataload(offset)
+    if iszero(eq(value, $CleanupAddress(value))) { revert(0, 0) }
+}" dep CleanupAddress,
+
+AbiDecodeBytesMemoryPtr: "(offset, end) -> array {
+    if iszero(slt(add(offset, 0x1f), end)) { $Abort2(12) }
+    let length := calldataload(offset)
+    array := $AbiDecodeAvailableLengthBytesMemoryPtr(add(offset, 0x20), length, end)
+}" dep AbiDecodeAvailableLengthBytesMemoryPtr dep Abort2,
+AbiDecodeAvailableLengthBytesMemoryPtr:"(src, length, end) -> array {
+    array := $Malloc2($ArrayAllocationSizeBytesMemoryPtr(length))
+    mstore(array, length)
+    let dst := add(array, 0x20)
+    if gt(add(src, length), end) { $Abort2(10) }
+    $CopyCalldataToMemory(src, dst, length)
+}" dep Malloc2 dep ArrayAllocationSizeBytesMemoryPtr dep CopyCalldataToMemory dep Abort2,
+Malloc2: "(size) -> offs {
+    offs := mload(${MEM_SIZE_LOC})
+    // pad to word size
+    mstore(${MEM_SIZE_LOC}, add(offs, shl(5, shr(5, add(size, 31)))))
+}",
+ArrayAllocationSizeBytesMemoryPtr: "(length) -> size {
+    // Make sure we can allocate memory without overflow
+    if gt(length, 0xffffffffffffffff) { $Abort2(11) }
+    size := $RoundUpMulOf32(length)
+    // add length slot
+    size := add(size, 0x20)
+}" dep RoundUpMulOf32 dep Abort2,
+RoundUpMulOf32: "(value) -> result {
+    result := and(add(value, 31), not(31))
+}",
+CopyCalldataToMemory: "(src, dst, length) {
+    calldatacopy(dst, src, length)
+    // clear end
+    mstore(add(dst, length), 0)
+}",
+CleanupAddress: "(value) -> cleaned {
+    cleaned := and(value, 0xffffffffffffffffffffffffffffffffffffffff)
+}",
 }

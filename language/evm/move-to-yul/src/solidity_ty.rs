@@ -708,6 +708,26 @@ impl SoliditySignature {
         }
     }
 
+    pub(crate) fn create_unstore_external_signature(
+    ) -> Self {
+        let fun_name = "unstoreExternal".to_string();
+        let mut para_type_lst = vec![];
+        para_type_lst.push((
+            SolidityType::Primitive(SolidityPrimitiveType::Uint(256)),
+            "resId".to_string(),
+            SignatureDataLocation::Memory,
+        ));
+        let ret_type_lst = vec![];
+        // let solidity_bool = SolidityType::Primitive(SolidityPrimitiveType::Bool);
+        // ret_type_lst.push((solidity_bool, SignatureDataLocation::Memory));
+
+        SoliditySignature {
+            sig_name: fun_name,
+            para_types: para_type_lst,
+            ret_types: ret_type_lst,
+        }
+    }
+
     /// Create a default solidity signature from a move function signature
     pub(crate) fn create_default_solidity_signature(
         ctx: &Context,
