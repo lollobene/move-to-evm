@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.19;
+pragma solidity >=0.8.11;
 
 import {IProtectionLayerProtectorV3} from "./interfaces/IProtectionLayerProtectorV3.sol";
-import {IProtectedContractV2} from "./interfaces/IProtectedContractV2.sol";
+// import {IProtectedContractV2} from "./interfaces/IProtectedContractV2.sol";
 
 contract ResourceDroppingV5 is IProtectionLayerProtectorV3 {
     // ***** Protection Layer State *****
