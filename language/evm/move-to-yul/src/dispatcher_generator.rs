@@ -389,7 +389,7 @@ impl Generator {
                     "function should check incoming reference",
                 );
                 emitln!(ctx.writer, "// function should check incoming reference");
-            }      
+            }
             // TODO: check delegate call
             if !attributes::is_payable_fun(fun) {
                 self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
@@ -441,6 +441,18 @@ impl Generator {
                     let res_in_name = format!("$ResIn{:x}", type_hash);
                     emitln!(ctx.writer, "{} := {}({})", param_name, res_in_name, param_name);
                     self.generate_res_in(ctx, ty.1.get_struct_id(ctx.env).unwrap());
+                }
+                else if ty.1.is_reference() {
+                    let struct_id = match ty.1 {
+                        Type::Reference(_, type_box) => {type_box.get_struct_id(ctx.env).unwrap()}
+                        _ => {panic!("")}
+                    };
+                    let param_name = format!("param_{}", ty.0);
+                    emitln!(ctx.writer, "// {}", param_name);
+                    let type_hash = self.type_hash(ctx, &struct_id.to_type());
+                    let ref_in_name = format!("$RefIn{:x}", type_hash);
+                    emitln!(ctx.writer, "{} := {}({})", param_name, ref_in_name, param_name);
+                    self.generate_ref_in(ctx, struct_id);
                 }
                 else {continue};
             }
@@ -596,7 +608,10 @@ impl Generator {
             // If this is not a creator which returns a storage value, add return types.
             types.extend(fun.get_return_types().into_iter())
         }
-        types.into_iter().all(|ty| !ty.is_reference())
+        
+        // Commented out because we do support references
+        // types.into_iter().all(|ty| !ty.is_reference())
+        true
     }
 
     /// Generate optional receive function.
@@ -825,6 +840,41 @@ impl Generator {
                     ctx, 
                     YulProtectionFunction::RemoveTypeHash, 
                     std::iter::once(res_id.clone())
+                );
+            });
+        };
+        self.need_protection_auxiliary_function(function_name, Box::new(generate_fun));
+    }
+
+    fn generate_ref_in(&mut self, ctx: &Context, struct_id: QualifiedInstId<StructId>) {
+        let type_hash = self.type_hash(ctx, &struct_id.to_type());
+        let function_name = format!("$RefIn{:x}", type_hash);
+        let res_id = "res_id".to_string();
+        let ref_in = "ref_in".to_string();
+        let signer = "signer".to_string();
+        let generate_fun = move |gen: &mut Generator, ctx: &Context|{
+            emit!(ctx.writer, "({}) -> {} ", res_id.clone(), ref_in.clone());
+            ctx.emit_block( ||{
+                gen.call_protection_layer_builtin_with_result(
+                    ctx,
+                    "let ",
+                    std::iter::once(signer.clone()),
+                    YulProtectionFunction::GetSigner, 
+                    std::iter::empty(),
+                );
+
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once("hash".to_string()), 
+                    YulProtectionFunction::ComputeHash,
+                    std::iter::once(format!("{}, {}", signer, res_id))
+                );
+
+                gen.borrow_ref(
+                    ctx, 
+                    &struct_id.to_type(), 
+                    "hash".to_string()
                 );
             });
         };

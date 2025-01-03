@@ -1,5 +1,5 @@
 module deploy_address::consumer {
-    use std::signer::address_of;
+    // use std::signer::address_of;
     use deploy_address::simple::{Self, Simple, get, multiple_get};
 
     struct Consumer has key {

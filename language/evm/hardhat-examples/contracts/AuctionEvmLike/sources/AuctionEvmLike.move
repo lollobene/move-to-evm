@@ -1,5 +1,5 @@
 #[evm_contract]
-module Evm::Auction {
+module Evm::AuctionEvmLike {
     use Evm::Evm::{self, block_number, sender, value, sign};
     use Evm::U256::{Self, U256, zero};
     

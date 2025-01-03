@@ -697,6 +697,142 @@ impl Generator {
         )
     }
 
+    pub(crate) fn borrow_ref(
+        &mut self,
+        ctx: &Context,
+        struct_type: &Type,
+        addr: String,
+    ) {
+        // Obtain the transient storage base offset for this resource.
+        emitln!(
+            ctx.writer,
+            "let $transient_base_offset := {}",
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                struct_type,
+                addr.clone(),
+            )
+        );
+        let transient_base_offset = "$transient_base_offset";
+
+        // Obtain the external storage base offset for this resource.
+        emitln!(
+            ctx.writer,
+            "let $external_base_offset := {}",
+            self.type_storage_base(
+                ctx,
+                "${EXTERNAL_STORAGE_CATEGORY}",
+                struct_type,
+                addr.clone(),
+            )
+        );
+        let external_base_offset = "$external_base_offset";
+
+        // At the base offset check the flag whether the resource exists.
+        let transient_exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(transient_base_offset.to_string()),
+        );
+
+        // At the base offset check the flag whether the resource exists.
+        let external_exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(external_base_offset.to_string()),
+        );
+
+        let abort_call = self.call_builtin_str(ctx, YulFunction::AbortBuiltin, std::iter::empty());
+        emitln!(
+            ctx.writer,
+            "if iszero(and({},{})) {{\n  {}\n}}",
+            transient_exists_call,
+            external_exists_call,
+            abort_call
+        );
+
+        let make_transient_ptr = self.call_builtin_str(
+            ctx,
+            YulFunction::MakePtr,
+            vec![
+                "true".to_string(),
+                format!("add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})", transient_base_offset),
+            ]
+            .into_iter(),
+        );
+
+        let make_external_ptr = self.call_builtin_str(
+            ctx,
+            YulFunction::MakePtr,
+            vec![
+                "true".to_string(),
+                format!("add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})", external_base_offset),
+            ]
+            .into_iter(),
+        );
+
+        emitln!(
+            ctx.writer,
+            "if {} {{\n  ref_in := {}\n}}",
+            transient_exists_call,
+            make_transient_ptr
+        );
+
+        emitln!(
+            ctx.writer,
+            "if {} {{\n  ref_in := {}\n}}",
+            external_exists_call,
+            make_external_ptr
+        );
+
+
+
+    }
+    pub(crate) fn borrow_transient(
+        &mut self,
+        ctx: &Context,
+        struct_type: &Type,
+        addr: String,
+    ) -> String {
+        // Obtain the storage base offset for this resource.
+        emitln!(
+            ctx.writer,
+            "let $transient_base_offset := {}",
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                struct_type,
+                addr,
+            )
+        );
+        let base_offset = "$transient_base_offset";
+
+        // At the base offset check the flag whether the resource exists.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedStorageLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(ctx, YulFunction::AbortBuiltin, std::iter::empty());
+        emitln!(
+            ctx.writer,
+            "if iszero({}) {{\n  {}\n}}",
+            exists_call,
+            abort_call
+        );
+
+        // Skip the existence flag and create a pointer.
+        self.call_builtin_str(
+            ctx,
+            YulFunction::MakePtr,
+            vec![
+                "true".to_string(),
+                format!("add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})", base_offset),
+            ]
+            .into_iter(),
+        )
+    }
     /// Returns an expression for checking whether a resource exists.
     pub(crate) fn exists_check(
         &mut self,

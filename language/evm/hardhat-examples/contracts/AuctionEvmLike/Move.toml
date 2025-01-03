@@ -1,5 +1,5 @@
 [package]
-name = "Auction"
+name = "AuctionEvmLike"
 version = "0.0.0"
 
 [dependencies]

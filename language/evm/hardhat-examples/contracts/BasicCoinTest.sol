@@ -14,6 +14,7 @@ interface IBasicCoin is IProtectionLayerV2 {
     function getBalance(address) external view returns (uint256);
     function withdraw(uint256) external returns (uint256);
     function deposit(address, uint256) external;
+    function coinValue(uint256) external view returns (uint256);
 }
 
 contract BasicCoinTestV1 {
@@ -28,6 +29,7 @@ contract BasicCoinTestV1 {
     event Fallback(bytes data);
     event Coin(uint256 value);
     event Balance(uint256 value);
+    event Value(uint256 value);
 
     IBasicCoin public immutable basicCoin;
 
@@ -69,6 +71,9 @@ contract BasicCoinTestV1 {
         emit Entered(signer);
         uint256 coin = basicCoin.withdraw(amount);
         emit Coin(coin);
+        uint256 value = basicCoin.coinValue(coin);
+        // require(value == amount, 'Value mismatch');
+        emit Value(value);
         basicCoin.storeExternal(coin);
         wrappers[signer] = Wrapper(coin);
     }

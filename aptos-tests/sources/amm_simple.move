@@ -1,9 +1,9 @@
 module deploy_address::amm_simple {
     use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability, FreezeCapability};
     use std::signer;
-    use std::string::{Self, String};
+    use std::string::{Self};
 
-    struct LiquidityPool<CoinType1, CoinType2> has key {
+    struct LiquidityPool<phantom CoinType1, phantom CoinType2> has key {
         coin1: Coin<CoinType1>,
         coin2: Coin<CoinType2>,
     }
@@ -64,7 +64,7 @@ module deploy_address::amm_simple {
     }
 
     public fun swap_c1_to_c2<CoinType1: store, CoinType2: store>(
-        acc: &signer,
+        _acc: &signer,
         coin1: Coin<CoinType1>,
     ): Coin<CoinType2> acquires LiquidityPool {
         let lp = borrow_global_mut<LiquidityPool<CoinType1, CoinType2>>(@deploy_address);
@@ -75,7 +75,7 @@ module deploy_address::amm_simple {
     }
 
     public fun swap_c2_to_c1<CoinType1: store, CoinType2: store>(
-        acc: &signer,
+        _acc: &signer,
         coin2: Coin<CoinType2>,
     ): Coin<CoinType1> acquires LiquidityPool {
         let lp = borrow_global_mut<LiquidityPool<CoinType1, CoinType2>>(@deploy_address);

@@ -577,9 +577,10 @@ impl<'a> Context<'a> {
             Vector(et) => format!("vec{}", self.mangle_types(&[et.as_ref().to_owned()])),
             Struct(mid, sid, inst) => {
                 self.mangle_struct(&mid.qualified(*sid).instantiate(inst.clone()))
-            }
+            },
+            Reference(..) => "ref".to_string(),
             TypeParameter(..) | Fun(..) | Tuple(..) | TypeDomain(..) | ResourceDomain(..)
-            | Error | Var(..) | Reference(..) => format!("<<unsupported {:?}>>", ty),
+            | Error | Var(..) => format!("<<unsupported {:?}>>", ty),
         }
     }
 

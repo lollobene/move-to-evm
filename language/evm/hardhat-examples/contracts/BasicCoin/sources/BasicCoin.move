@@ -7,6 +7,17 @@ module Evm::basic_coin {
         value: U256
     }
 
+    struct Nested has key, drop {
+        num: u128,
+        flag: bool,
+        inner: S
+    }
+
+    struct S has store, drop {
+        field: u128,
+        flag: bool
+    }
+
     struct MintCapability has key {}
     
     #[create(sig=b"constructor()")]
@@ -75,9 +86,21 @@ module Evm::basic_coin {
         Coin { value: amount }
     }
 
+    #[callable(sig=b"mintTo(uint256,address)")]
+    public fun mint_to(amount: U256, to: address) acquires Coin {
+        let account_addr = protection_layer_signer_address();
+        assert!(exists<MintCapability>(account_addr), 0);
+        deposit(to, Coin { value: amount })
+    }
+
     #[callable(sig=b"getBalance(address) returns (uint256)"), view]
     public fun get_balance(account: address): U256 acquires Coin{
         let coin = borrow_global<Coin>(account);
         coin.value
+    }
+
+    #[callable(sig=b"coinValue(uint256) returns (uint256)"), view]
+    public fun coin_value(coin_ref: &Coin): U256 {
+        coin_ref.value
     }
 }
