@@ -59,6 +59,9 @@ contract BasicCoinTestV1 {
         require(msg.sender == address(basicCoin), 'Unauthorized');
         emit Entered(signer);
         uint256 coin = basicCoin.mint(amount);
+        uint256 value = basicCoin.coinValue(coin);
+        require(value == amount, 'Value mismatch');
+        emit Value(value);
         uint256 balance = basicCoin.getBalance(to);
         emit Balance(balance);
         basicCoin.deposit(to, coin);
@@ -72,7 +75,7 @@ contract BasicCoinTestV1 {
         uint256 coin = basicCoin.withdraw(amount);
         emit Coin(coin);
         uint256 value = basicCoin.coinValue(coin);
-        // require(value == amount, 'Value mismatch');
+        require(value == amount, 'Value mismatch');
         emit Value(value);
         basicCoin.storeExternal(coin);
         wrappers[signer] = Wrapper(coin);
@@ -116,5 +119,9 @@ contract BasicCoinTestV1 {
         address to
     ) public view returns (bytes memory) {
         return abi.encodeCall(this.mintTo, (msg.sender, amount, to));
+    }
+
+    function depositEncoding() public view returns (bytes memory) {
+        return abi.encodeCall(this.deposit, msg.sender);
     }
 }

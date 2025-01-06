@@ -7,17 +7,6 @@ module Evm::basic_coin {
         value: U256
     }
 
-    struct Nested has key, drop {
-        num: u128,
-        flag: bool,
-        inner: S
-    }
-
-    struct S has store, drop {
-        field: u128,
-        flag: bool
-    }
-
     struct MintCapability has key {}
     
     #[create(sig=b"constructor()")]

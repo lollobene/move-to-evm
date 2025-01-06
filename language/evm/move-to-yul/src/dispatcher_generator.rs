@@ -762,27 +762,39 @@ impl Generator {
                     std::iter::empty(),
                 );
                 
-                gen.call_protection_layer_builtin_with_result(
-                    ctx, 
-                    "let ", 
-                    std::iter::once(signer.clone()), 
-                    YulProtectionFunction::GetSigner, 
-                    std::iter::empty(),
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
                 );
 
-                gen.call_protection_layer_builtin_with_result(
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once(signer.clone()), 
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once("signer, resource_id".to_string())
+                // );
+
+                gen.save_resource(
                     ctx, 
-                    "let ", 
-                    std::iter::once("hash".to_string()), 
-                    YulProtectionFunction::ComputeHash,
-                    std::iter::once("signer, resource_id".to_string())
+                    &struct_id,
+                    res.clone(),
+                    res_id.clone()
                 );
 
                 // Save the resource to external
                 gen.move_to_transient(
                     ctx,
                     &struct_id,
-                    "hash".to_string(),
+                    "sender".to_string(),
                     res.clone()
                 );
                 // we compute the key as the hash of (0x00resID)
@@ -812,27 +824,39 @@ impl Generator {
                     YulProtectionFunction::DecrementH, 
                     std::iter::empty(),
                 );
-                
-                gen.call_protection_layer_builtin_with_result(
-                    ctx, 
-                    "let ",
-                    std::iter::once(signer.clone()), 
-                    YulProtectionFunction::GetSigner, 
-                    std::iter::empty(),
-                );
 
-                gen.call_protection_layer_builtin_with_result(
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
+                );
+                
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ",
+                //     std::iter::once(signer.clone()), 
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once(format!("{}, {}", signer, res_id))
+                // );
+
+                gen.unsave_resource(
                     ctx, 
-                    "let ", 
-                    std::iter::once("hash".to_string()), 
-                    YulProtectionFunction::ComputeHash,
-                    std::iter::once(format!("{}, {}", signer, res_id))
+                    &struct_id,
+                    res_id.clone(),
+                    res.clone()
                 );
 
                 gen.move_from_transient(
                     ctx, 
                     &struct_id, 
-                    "hash".to_string(),
+                    "sender".to_string(),
                     "resource".to_string()
                 );
 
@@ -855,26 +879,33 @@ impl Generator {
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), ref_in.clone());
             ctx.emit_block( ||{
-                gen.call_protection_layer_builtin_with_result(
-                    ctx,
-                    "let ",
-                    std::iter::once(signer.clone()),
-                    YulProtectionFunction::GetSigner, 
-                    std::iter::empty(),
+                
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
                 );
 
-                gen.call_protection_layer_builtin_with_result(
-                    ctx, 
-                    "let ", 
-                    std::iter::once("hash".to_string()), 
-                    YulProtectionFunction::ComputeHash,
-                    std::iter::once(format!("{}, {}", signer, res_id))
-                );
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx,
+                //     "let ",
+                //     std::iter::once(signer.clone()),
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once(format!("{}, {}", signer, res_id))
+                // );
 
                 gen.borrow_ref(
                     ctx, 
                     &struct_id.to_type(), 
-                    "hash".to_string()
+                    "sender".to_string(),
+                    res_id.clone(),
                 );
             });
         };
