@@ -17,7 +17,7 @@ interface IBasicCoin is IProtectionLayerV2 {
     function coinValue(uint256) external view returns (uint256);
 }
 
-contract BasicCoinTestV1 {
+contract BasicCoinOriginalTestV1 {
     struct Wrapper {
         uint256 coin;
     }
@@ -40,7 +40,7 @@ contract BasicCoinTestV1 {
     }
 
     function register(address signer) public {
-        require(msg.sender == address(basicCoin), 'Unauthorized');
+        // require(msg.sender == address(basicCoin), 'Unauthorized');
         // emit Entered(signer);
         basicCoin.register();
         // uint256 bal = basicCoin.getBalance(signer);
@@ -91,7 +91,7 @@ contract BasicCoinTestV1 {
     }
 
     function transfer(address signer, uint256 amount, address to) public {
-        require(msg.sender == address(basicCoin), 'Unauthorized');
+        // require(msg.sender == address(basicCoin), 'Unauthorized');
         // emit Entered(signer);
         basicCoin.transfer(to, amount);
     }
@@ -106,10 +106,6 @@ contract BasicCoinTestV1 {
         uint256 coin = basicCoin.withdraw(amount);
         // emit Coin(coin);
         basicCoin.deposit(to, coin);
-    }
-
-    function doNothing() public {
-        // emit Entered(msg.sender);
     }
 
     /********** Encoding functions for testing **********/
@@ -140,9 +136,5 @@ contract BasicCoinTestV1 {
         address to
     ) public view returns (bytes memory) {
         return abi.encodeCall(this.transfer, (msg.sender, amount, to));
-    }
-
-    function doNothingEncoding() public view returns (bytes memory) {
-        return abi.encodeCall(this.doNothing, ());
     }
 }

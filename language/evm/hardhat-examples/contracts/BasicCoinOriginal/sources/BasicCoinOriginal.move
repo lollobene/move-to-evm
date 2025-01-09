@@ -1,8 +1,9 @@
 #[evm_contract]
-module Evm::basic_coin {
-    use Evm::Evm::{sender, sign, require, /*address_of,*/ protection_layer_signer_address};
-    use Evm::U256::{U256, add, sub, zero, u256_from_u128, le};
+module Evm::basic_coin_original {
+    use Evm::Evm::{sender, sign, require /*address_of,*/};
+    use Evm::U256::{U256, add, sub, zero, le};
 
+    #[abi_struct(sig=b"Coin(uint256)")]
     struct Coin has key {
         value: U256
     }
@@ -21,16 +22,13 @@ module Evm::basic_coin {
 
     #[callable(sig=b"mintCapability()"), view]
     public fun mint_capability() {
-        let account_addr = protection_layer_signer_address();
+        let account_addr = sender();
         assert!(exists<MintCapability>(account_addr), 0);
     }
 
-
-    // Here the 'from: &signer' parameter was removed 
-    // and used protection_layer_signer_address() instead
     #[callable(sig=b"register()")]
     public fun register() {
-        let acc = protection_layer_signer_address();
+        let acc = sender();
         let coin = Coin { value: zero() };
         move_to(&sign(acc), coin);
     }
@@ -47,18 +45,18 @@ module Evm::basic_coin {
 
     // Here the 'from: &signer' parameter was removed 
     // and used protection_layer_signer_address() instead
-    #[callable(sig=b"withdraw(uint256) returns (uint256)")]
+    #[callable(sig=b"withdraw(uint256) returns (Coin)")]
     public fun withdraw (
         amount: U256
     ): Coin acquires Coin {
-        let account_addr = protection_layer_signer_address();
+        let account_addr = sender();
         let coin = borrow_global_mut<Coin>(account_addr);
         require(le(amount, coin.value), b"ERC20: transfer amount exceeds balance");
         coin.value = sub(coin.value, amount);
         Coin { value: amount }
     }
 
-    #[callable(sig=b"deposit(address, uint256)")]
+    #[callable(sig=b"deposit(address, Coin)")]
     public fun deposit (
         to: address,
         coin: Coin
@@ -70,16 +68,16 @@ module Evm::basic_coin {
 
     // Here the 'from: &signer' parameter was removed 
     // and used protection_layer_signer_address() instead
-    #[callable(sig=b"mint(uint256) returns (uint256)")]
+    #[callable(sig=b"mint(uint256) returns (Coin)")]
     public fun mint(amount: U256): Coin {
-        let account_addr = protection_layer_signer_address();
+        let account_addr = sender();
         assert!(exists<MintCapability>(account_addr), 0);
         Coin { value: amount }
     }
 
     #[callable(sig=b"mintTo(uint256,address)")]
     public fun mint_to(amount: U256, to: address) acquires Coin {
-        let account_addr = protection_layer_signer_address();
+        let account_addr = sender();
         assert!(exists<MintCapability>(account_addr), 0);
         deposit(to, Coin { value: amount })
     }
@@ -90,11 +88,6 @@ module Evm::basic_coin {
         coin.value
     }
 
-    #[callable(sig=b"coinValue(uint256) returns (uint256)"), view]
-    public fun coin_value(coin_ref: &Coin): U256 {
-        coin_ref.value
-    }
-
-    #[callable(sig=b"doNothing()", view)]
+    #[callable(sig=b"doNothing()")]
     public fun do_nothing() {}
-}
+} 
