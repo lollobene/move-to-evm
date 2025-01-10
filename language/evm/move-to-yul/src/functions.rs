@@ -226,12 +226,16 @@ impl<'a> FunctionGenerator<'a> {
                 std::iter::once("protected_contract".to_string()),
             );
 
-            emitln!(ctx.writer, "log0(add(cb, 0x20), mload(cb))");
+            // emitln!(ctx.writer, "log0(add(cb, 0x20), mload(cb))");
             // emitln!(ctx.writer, "log0(cb, 0x40)");
             // emitln!(ctx.writer, "log0(add(cb, 0x20), 0x40)");
+            
             emitln!(ctx.writer, "result := call(gas(), protected_contract, 0, add(cb, 0x20), mload(cb), 0, 0)");
+            
             // assert result
+
             emitln!(ctx.writer, "if iszero(result) { revert(0, 0) }");
+            
             // this sets flag back to false
             
             // emitln!(ctx.writer, "$Release()");
