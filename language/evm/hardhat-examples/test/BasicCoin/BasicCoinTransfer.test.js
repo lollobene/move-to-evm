@@ -36,16 +36,21 @@ contract('BasicCoin', function (accounts) {
             'register',
             []
         );
-        await this.basicCoin.protectionLayer(
+
+        let result = await this.basicCoin.protectionLayer(
             this.basicCoin.address,
             registerEncoding,
             { from: user1 }
         );
-        await this.basicCoin.protectionLayer(
+        console.log('Register cost: ', result.receipt.gasUsed);
+
+        result = await this.basicCoin.protectionLayer(
             this.basicCoin.address,
             registerEncoding,
             { from: user2 }
         );
+        console.log('Register cost: ', result.receipt.gasUsed);
+
         expect(await this.basicCoin.getBalance(user1)).to.be.bignumber.equal(
             '0'
         );
@@ -57,11 +62,12 @@ contract('BasicCoin', function (accounts) {
             [deployer, 10000, user1]
         );
 
-        await this.basicCoin.protectionLayer(
+        result = await this.basicCoin.protectionLayer(
             this.basicCoinTest.address,
             mintToEncoding,
             { from: deployer }
         );
+        console.log('MintTo cost: ', result.receipt.gasUsed);
     });
 
     describe('when everything is set up', function () {
@@ -75,7 +81,7 @@ contract('BasicCoin', function (accounts) {
                 transferEncoding,
                 { from: user1 }
             );
-            console.log(result.receipt.gasUsed);
+            console.log('Transfer cost', result.receipt.gasUsed);
 
             // result = await this.basicCoin.protectionLayer(
             //     this.basicCoinTest.address,

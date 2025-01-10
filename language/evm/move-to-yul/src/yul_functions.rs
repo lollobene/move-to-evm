@@ -592,6 +592,16 @@ AlignedStorageStore: "(offs, val) {
     sstore($StorageKey(${LINEAR_STORAGE_GROUP}, word_offs), val)
 }" dep StorageKey,
 
+AlignedTransientLoad: "(offs) -> val {
+    let word_offs := shr(5, offs)
+    val := tload($StorageKey(${LINEAR_STORAGE_GROUP}, word_offs))
+}" dep StorageKey,
+
+AlignedTransientStore: "(offs, val) {
+    let word_offs := shr(5, offs)
+    tstore($StorageKey(${LINEAR_STORAGE_GROUP}, word_offs), val)
+}" dep StorageKey,
+
 // TODO: this function needs more testing
 // Copies size bytes from memory to memory.
 CopyMemory: "(src, dst, size) {
