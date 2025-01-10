@@ -221,7 +221,7 @@ impl Generator {
         // and if it is set, abort. Otherwise set this bit.
         let exists_call = self.call_builtin_str(
             ctx,
-            YulFunction::AlignedStorageLoad,
+            YulFunction::AlignedTransientLoad,
             std::iter::once(base_offset.to_string()),
         );
         let abort_call = self.call_builtin_str(
@@ -237,7 +237,7 @@ impl Generator {
         );
         self.call_builtin(
             ctx,
-            YulFunction::AlignedStorageStore,
+            YulFunction::AlignedTransientStore,
             vec![base_offset.to_string(), "true".to_string()].into_iter(),
         );
 
@@ -430,7 +430,7 @@ impl Generator {
         // and if it is not set, abort. Otherwise clear this bit.
         let exists_call = self.call_builtin_str(
             ctx,
-            YulFunction::AlignedStorageLoad,
+            YulFunction::AlignedTransientLoad,
             std::iter::once(base_offset.to_string()),
         );
         let abort_call = self.call_builtin_str(
@@ -446,7 +446,7 @@ impl Generator {
         );
         self.call_builtin(
             ctx,
-            YulFunction::AlignedStorageStore,
+            YulFunction::AlignedTransientStore,
             vec![base_offset.to_string(), "false".to_string()].into_iter(),
         );
 
