@@ -45,36 +45,57 @@ impl Generator {
         self.move_to_transient_with_clean_flag(ctx, struct_id, signer_ref, value, false);
     }
 
-
-    pub(crate) fn save_resource(
+    /// Move resource from memory to transient storage.
+    pub(crate) fn protection_layer_store_transient(
         &mut self,
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
+        signer_ref: String,
         value: String,
-        res_id: String,
     ) {
-        self.save_resource_with_clean_flag(ctx, struct_id, value, res_id, false);
+        // let addr = self.call_builtin_str(ctx, YulFunction::LoadU256, std::iter::once(signer_ref));
+        self.protection_layer_store_transient_with_clean_flag(ctx, struct_id, signer_ref, value, false);
     }
 
-    pub(crate) fn save_resource_with_clean_flag(
+    pub(crate) fn store_resource_to_transient(
         &mut self,
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
-        value: String,
         res_id: String,
+        value: String,
+    ) {
+        self.store_resource_to_transient_with_clean_flag(ctx, struct_id, res_id, value, false);
+    }
+
+    pub(crate) fn store_external_resource(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        res_id: String,
+        value: String,
+    ) {
+        self.store_external_resource_with_clean_flag(ctx, struct_id, res_id, value, false);
+    }
+
+    pub(crate) fn store_external_resource_with_clean_flag(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        key: String,
+        value: String,
         clean_flag: bool,
     ) {
-        emitln!(ctx.writer, "//save resource");
-        let base_offset = "$resource_base_offset";
+        emitln!(ctx.writer, "//store to external with clean flag");
+        let base_offset = "$external_base_offset";
         emitln!(
             ctx.writer,
             "let {} := {}",
             base_offset,
             self.type_storage_base(
                 ctx,
-                "${RESOURCE_STORAGE_CATEGORY}",
+                "${EXTERNAL_STORAGE_CATEGORY}",
                 &struct_id.to_type(),
-                res_id,
+                key,
             )
         );
 
@@ -121,26 +142,28 @@ impl Generator {
                 clean_flag,
             );
         });
+
     }
 
-    pub(crate) fn unsave_resource(
+    pub(crate) fn unstore_external_resource (
         &mut self,
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
-        res_id: String,
-        returned_value: String,
+        key: String,
+        returned_value: String
     ) {
-        emitln!(ctx.writer, "//unsave resource");
-        let base_offset = "$resource_base_offset";
+        emitln!(ctx.writer, "//unstore from external");
+        // Obtain the storage base offset for this resource.
+        let base_offset = "$external_base_offset";
         emitln!(
             ctx.writer,
             "let {} := {}",
             base_offset,
             self.type_storage_base(
                 ctx,
-                "${RESOURCE_STORAGE_CATEGORY}",
+                "${EXTERNAL_STORAGE_CATEGORY}",
                 &struct_id.to_type(),
-                res_id,
+                key,
             )
         );
 
@@ -195,6 +218,145 @@ impl Generator {
         })
     }
 
+    pub(crate) fn store_resource_to_transient_with_clean_flag(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        res_id: String,
+        value: String,
+        clean_flag: bool,
+    ) {
+        emitln!(ctx.writer, "//store resource");
+        let base_offset = "$transient_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                res_id,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is set, abort. Otherwise set this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedTransientLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer, 
+            "if {} {{\n  {}\n}}", 
+            exists_call, 
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedTransientStore,
+            vec![base_offset.to_string(), "true".to_string()].into_iter(),
+        );
+
+        // Move the struct to transient storage.
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the destination address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $dst := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+            emitln!(ctx.writer, "let $src := {}", value);
+            // Perform the move.
+            self.move_struct_to_transient(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                clean_flag,
+            );
+        });
+    }
+
+    pub(crate) fn unstore_resource_from_transient(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        res_id: String,
+        returned_value: String,
+    ) {
+        emitln!(ctx.writer, "//unstore resource");
+        let base_offset = "$resource_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                res_id,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is not set, abort. Otherwise clear this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedTransientLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx, 
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer,
+            "if iszero({}) {{\n  {}\n}}",
+            exists_call,
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedTransientStore,
+            vec![base_offset.to_string(), "false".to_string()].into_iter(),
+        );
+
+        // Move the struct out of storage into memory
+        ctx.emit_block(|| {
+            // The actual resource data starts at base_offset + 32. Set the src address
+            // to this.
+            emitln!(
+                ctx.writer,
+                "let $src := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+                base_offset
+            );
+
+            // Perform the move and assign the result.
+            emitln!(ctx.writer, "let $dst");
+            self.move_struct_from_transient_to_memory(
+                ctx,
+                &struct_id,
+                "$src".to_string(),
+                "$dst".to_string(),
+                true,
+            );
+            emitln!(
+                ctx.writer,
+                "{} := $dst",
+                returned_value
+            );
+        })
+    }
+
     pub(crate) fn move_to_transient_with_clean_flag(
         &mut self,
         ctx: &Context,
@@ -202,6 +364,73 @@ impl Generator {
         addr: String,
         _value: String,
         _clean_flag: bool,
+    ) {
+        emitln!(ctx.writer, "//move to transient with clean flag");
+        let base_offset = "$transient_base_offset";
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            base_offset,
+            self.type_storage_base(
+                ctx,
+                "${TRANSIENT_STORAGE_CATEGORY}",
+                &struct_id.to_type(),
+                addr,
+            )
+        );
+
+        // At the base offset we store a boolean indicating whether the resource exists. Check this
+        // and if it is set, abort. Otherwise set this bit.
+        let exists_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AlignedTransientLoad,
+            std::iter::once(base_offset.to_string()),
+        );
+        let abort_call = self.call_builtin_str(
+            ctx,
+            YulFunction::AbortBuiltin, 
+            std::iter::empty()
+        );
+        emitln!(
+            ctx.writer, 
+            "if {} {{\n  {}\n}}", 
+            exists_call, 
+            abort_call
+        );
+        self.call_builtin(
+            ctx,
+            YulFunction::AlignedTransientStore,
+            vec![base_offset.to_string(), "true".to_string()].into_iter(),
+        );
+
+        // // Move the struct to storage.
+        // ctx.emit_block(|| {
+        //     // The actual resource data starts at base_offset + 32. Set the destination address
+        //     // to this.
+        //     emitln!(
+        //         ctx.writer,
+        //         "let $dst := add({}, ${{RESOURCE_EXISTS_FLAG_SIZE}})",
+        //         base_offset
+        //     );
+        //     emitln!(ctx.writer, "let $src := {}", value);
+        //     // Perform the move.
+        //     self.move_struct_to_storage(
+        //         ctx,
+        //         &struct_id,
+        //         "$src".to_string(),
+        //         "$dst".to_string(),
+        //         clean_flag,
+        //     );
+        // });
+    }
+
+    pub(crate) fn protection_layer_store_transient_with_clean_flag (
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        addr: String,
+        value: String,
+        clean_flag: bool,
     ) {
         emitln!(ctx.writer, "//move to transient with clean flag");
         let base_offset = "$transient_base_offset";
@@ -616,6 +845,86 @@ impl Generator {
         }
     }
 
+    /// Move a struct from memory to transient storage. This recursively moves linked data like
+    /// nested structs and vectors.
+    pub(crate) fn move_struct_to_transient(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        src: String,
+        dst: String,
+        clean_flag: bool,
+    ) {
+        let layout = ctx.get_struct_layout(struct_id);
+
+        // By invariant we know that the leading fields are pointer fields. Copy them first.
+        for field_offs in layout.field_order.iter().take(layout.pointer_count) {
+            let (byte_offs, ty) = layout.offsets.get(field_offs).unwrap();
+            assert_eq!(byte_offs % 32, 0, "pointer fields are on word boundary");
+            ctx.emit_block(|| {
+                let linked_src_name = format!("$linked_src_{}", self.type_hash(ctx, ty));
+                let linked_dst_name = format!("$linked_dst_{}", self.type_hash(ctx, ty));
+
+                // Load the pointer to the linked memory.
+                emitln!(
+                    ctx.writer,
+                    "let {} := mload({})",
+                    linked_src_name,
+                    format!("add({}, {})", src, byte_offs)
+                );
+                self.create_and_move_data_to_linked_transient_storage(
+                    ctx,
+                    ty,
+                    linked_src_name,
+                    linked_dst_name.clone(),
+                    clean_flag,
+                );
+                // Store the result at the destination
+                self.call_builtin(
+                    ctx,
+                    YulFunction::AlignedTransientStore,
+                    vec![format!("add({}, {})", dst, byte_offs), linked_dst_name].into_iter(),
+                )
+            });
+        }
+
+        // The remaining fields are all primitive. We also know that memory is padded to word size,
+        // so we can just copy directly word by word, which has the lowest gas cost.
+        if layout.pointer_count < layout.field_order.len() {
+            let mut byte_offs = layout
+                .offsets
+                .get(&layout.field_order[layout.pointer_count])
+                .unwrap()
+                .0;
+            assert_eq!(
+                byte_offs % 32,
+                0,
+                "first non-pointer field on word boundary"
+            );
+            while byte_offs < layout.size {
+                self.call_builtin(
+                    ctx,
+                    YulFunction::AlignedTransientStore,
+                    vec![
+                        format!("add({}, {})", dst, byte_offs),
+                        format!("mload(add({}, {}))", src, byte_offs),
+                    ]
+                    .into_iter(),
+                );
+                byte_offs += 32
+            }
+        }
+
+        // Free the memory allocated by this struct.
+        if clean_flag {
+            self.call_builtin(
+                ctx,
+                YulFunction::Free,
+                vec![src, layout.size.to_string()].into_iter(),
+            )
+        }
+    }
+
     /// Move a struct from storage to memory, zeroing all associated storage. This recursively
     /// moves linked data like nested structs and vectors.
     pub(crate) fn move_struct_to_memory(
@@ -715,6 +1024,105 @@ impl Generator {
         }
     }
 
+    /// Move a struct from transient storage to memory, zeroing all associated storage. This recursively
+    /// moves linked data like nested structs and vectors.
+    pub(crate) fn move_struct_from_transient_to_memory(
+        &mut self,
+        ctx: &Context,
+        struct_id: &QualifiedInstId<StructId>,
+        src: String,
+        dst: String,
+        clean_flag: bool, // whether to clean the storage
+    ) {
+        // Allocate struct.
+        let layout = ctx.get_struct_layout(struct_id);
+        emitln!(
+            ctx.writer,
+            "{} := {}",
+            dst,
+            self.call_builtin_str(
+                ctx,
+                YulFunction::Malloc,
+                std::iter::once(layout.size.to_string()),
+            )
+        );
+
+        // Copy fields. By invariant we know that the leading fields are pointer fields.
+        for field_offs in layout.field_order.iter().take(layout.pointer_count) {
+            let (byte_offs, ty) = layout.offsets.get(field_offs).unwrap();
+            assert_eq!(byte_offs % 32, 0, "pointer fields are on word boundary");
+            let field_src_ptr = format!("add({}, {})", src, byte_offs);
+            let field_dst_ptr = format!("add({}, {})", dst, byte_offs);
+            ctx.emit_block(|| {
+                let hash = self.type_hash(ctx, ty);
+                let linked_src_name = format!("$linked_src_{}", hash);
+                let linked_dst_name = format!("$linked_dst_{}", hash);
+
+                // Load the pointer to the linked storage.
+                let load_call = self.call_builtin_str(
+                    ctx,
+                    YulFunction::AlignedTransientLoad,
+                    std::iter::once(field_src_ptr.clone()),
+                );
+
+                emitln!(ctx.writer, "let {} := {}", linked_src_name, load_call);
+
+                // Declare where to store the result and recursively move
+                emitln!(ctx.writer, "let {}", linked_dst_name);
+                self.move_data_from_linked_transient_storage(
+                    ctx,
+                    ty,
+                    linked_src_name,
+                    linked_dst_name.clone(),
+                    clean_flag,
+                );
+                // Store the result at the destination.
+                emitln!(ctx.writer, "mstore({}, {})", field_dst_ptr, linked_dst_name);
+                // Clear the storage to get a refund
+                if clean_flag {
+                    self.call_builtin(
+                        ctx,
+                        YulFunction::AlignedTransientStore,
+                        vec![field_src_ptr, 0.to_string()].into_iter(),
+                    );
+                }
+            });
+        }
+
+        // The remaining fields are all primitive. We also know that memory is padded to word size,
+        // so we can just copy directly word by word, which has the lowest gas cost.
+        if layout.pointer_count < layout.field_order.len() {
+            let mut byte_offs = layout
+                .offsets
+                .get(&layout.field_order[layout.pointer_count])
+                .unwrap()
+                .0;
+            assert_eq!(
+                byte_offs % 32,
+                0,
+                "first non-pointer field on word boundary"
+            );
+            while byte_offs < layout.size {
+                let field_src_ptr = format!("add({}, {})", src, byte_offs);
+                let field_dst_ptr = format!("add({}, {})", dst, byte_offs);
+                let load_call = self.call_builtin_str(
+                    ctx,
+                    YulFunction::AlignedTransientLoad,
+                    std::iter::once(field_src_ptr.clone()),
+                );
+                emitln!(ctx.writer, "mstore({}, {})", field_dst_ptr, load_call);
+                if clean_flag {
+                    self.call_builtin(
+                        ctx,
+                        YulFunction::AlignedTransientStore,
+                        vec![field_src_ptr, 0.to_string()].into_iter(),
+                    );
+                }
+                byte_offs += 32
+            }
+        }
+    }
+
     // Recursively move struct or vector data to corresponding linked storage.
     // This function calls `move_struct_to_storage` and `move_vector_to_storage`, and
     // is called by these two functions too.
@@ -761,6 +1169,52 @@ impl Generator {
         }
     }
 
+    // Recursively move struct or vector data to corresponding linked transient storage.
+    // This function calls `move_struct_to_transient_storage` and `move_vector_to_transient_storage`, and
+    // is called by these two functions too.
+    pub(crate) fn create_and_move_data_to_linked_transient_storage(
+        &mut self,
+        ctx: &Context,
+        ty: &Type,
+        linked_src_name: String,
+        linked_dst_name: String,
+        clean_flag: bool,
+    ) {
+        let hash = self.type_hash(ctx, ty);
+        // Allocate a new storage pointer.
+        emitln!(
+            ctx.writer,
+            "let {} := {}",
+            linked_dst_name,
+            self.call_builtin_str(
+                ctx,
+                YulFunction::NewLinkedStorageBase,
+                std::iter::once(format!("0x{:x}", hash))
+            )
+        );
+
+        // Recursively move.
+        if ty.is_vector() {
+            self.move_vector_to_transient(ctx, ty, linked_src_name, linked_dst_name, clean_flag);
+        } else if ctx.type_is_struct(ty) {
+            let field_struct_id = ty.get_struct_id(ctx.env).expect("struct");
+            self.move_struct_to_transient(
+                ctx,
+                &field_struct_id,
+                linked_src_name,
+                linked_dst_name,
+                clean_flag,
+            );
+        } else {
+            // Primitive type so directly store the src at the location
+            self.call_builtin(
+                ctx,
+                ctx.transient_store_builtin_fun(ty),
+                vec![linked_dst_name, linked_src_name].into_iter(),
+            );
+        }
+    }
+
     // Recursively move struct or vector data from linked storage to memory.
     // This function calls `move_struct_to_memory` and `move_vector_to_memory`, and
     // is called by these two functions too.
@@ -792,6 +1246,43 @@ impl Generator {
                 self.call_builtin_str(
                     ctx,
                     ctx.storage_load_builtin_fun(ty),
+                    std::iter::once(linked_src_name)
+                )
+            );
+        }
+    }
+
+    // Recursively move struct or vector data from linked transient storage to memory.
+    // This function calls `move_struct_from_transient_to_memory` and `move_vector_from_transient_to_memory`, and
+    // is called by these two functions too.
+    pub(crate) fn move_data_from_linked_transient_storage(
+        &mut self,
+        ctx: &Context,
+        ty: &Type,
+        linked_src_name: String,
+        linked_dst_name: String,
+        clean_flag: bool,
+    ) {
+        if ty.is_vector() {
+            self.move_vector_from_transient_to_memory(ctx, ty, linked_src_name, linked_dst_name, clean_flag);
+        } else if ctx.type_is_struct(ty) {
+            let field_struct_id = ty.get_struct_id(ctx.env).expect("struct");
+            self.move_struct_from_transient_to_memory(
+                ctx,
+                &field_struct_id,
+                linked_src_name,
+                linked_dst_name,
+                clean_flag,
+            );
+        } else {
+            // Primitive type
+            emitln!(
+                ctx.writer,
+                "{} := {}",
+                linked_dst_name,
+                self.call_builtin_str(
+                    ctx,
+                    ctx.transient_load_builtin_fun(ty),
                     std::iter::once(linked_src_name)
                 )
             );

@@ -783,19 +783,23 @@ impl Generator {
                 //     std::iter::once("signer, resource_id".to_string())
                 // );
 
-                gen.save_resource(
+                // Store resource to transient res-id->resource
+                gen.store_resource_to_transient(
                     ctx, 
                     &struct_id,
-                    res.clone(),
-                    res_id.clone()
+                    res_id.clone(),
+                    res.clone()
                 );
 
-                // Save the resource to external
+                // TODO22 CHECK HERE
+                // Update the transients res-id->address
+                
+                //gen.move_to_transient(
                 gen.move_to_transient(
                     ctx,
                     &struct_id,
+                    res_id.clone(),
                     "sender".to_string(),
-                    res.clone()
                 );
                 // we compute the key as the hash of (0x00resID)
                 gen.call_protection_layer_builtin(
@@ -846,13 +850,16 @@ impl Generator {
                 //     std::iter::once(format!("{}, {}", signer, res_id))
                 // );
 
-                gen.unsave_resource(
+                // Unstore resource from transient res-id->resource
+                gen.unstore_resource_from_transient(
                     ctx, 
                     &struct_id,
                     res_id.clone(),
                     res.clone()
                 );
 
+                // TODO22 CHECK HERE
+                // Update the transients res-id->address
                 gen.move_from_transient(
                     ctx, 
                     &struct_id, 
