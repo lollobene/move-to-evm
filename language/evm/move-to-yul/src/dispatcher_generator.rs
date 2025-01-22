@@ -743,7 +743,7 @@ impl Generator {
         let function_name = format!("$ResOut{:x}", type_hash);
         let res = "resource".to_string();
         let res_id = "resource_id".to_string();
-        let signer = "signer".to_string();
+        let _signer = "signer".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res.clone(), res_id);
             ctx.emit_block(||{
@@ -814,7 +814,7 @@ impl Generator {
         let function_name = format!("$ResIn{:x}", type_hash);
         let res = "resource".to_string();
         let res_id = "resource_id".to_string();
-        let signer = "signer".to_string();
+        let _signer = "signer".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), res.clone());
             ctx.emit_block(||{
@@ -875,7 +875,7 @@ impl Generator {
         let function_name = format!("$RefIn{:x}", type_hash);
         let res_id = "res_id".to_string();
         let ref_in = "ref_in".to_string();
-        let signer = "signer".to_string();
+        let _signer = "signer".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), ref_in.clone());
             ctx.emit_block( ||{

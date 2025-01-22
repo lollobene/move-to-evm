@@ -264,8 +264,8 @@ impl<'a> FunctionGenerator<'a> {
     fn store_external_function(&mut self, ctx: &Context) {
         let function_name = "$StoreExternal".to_string();
         let params_str = "resource_id".to_string();
-        let signer= "signer".to_string();
-        let storage_hash = "storage_hash".to_string();
+        let _signer= "signer".to_string();
+        let _storage_hash = "storage_hash".to_string();
         let res = "resource".to_string();
 
         emit!(
@@ -352,8 +352,8 @@ impl<'a> FunctionGenerator<'a> {
     fn unstore_external_function(&mut self, ctx: &Context) {
         let function_name = "$UnstoreExternal".to_string();
         let params_str = "resource_id".to_string();
-        let signer = "signer".to_string();
-        let storage_hash = "storage_hash".to_string();
+        let _signer = "signer".to_string();
+        let _storage_hash = "storage_hash".to_string();
         let res = "resource".to_string();
         emit!(
             ctx.writer,
