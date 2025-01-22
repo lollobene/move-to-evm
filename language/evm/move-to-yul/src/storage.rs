@@ -362,8 +362,8 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
-        value: String,
-        clean_flag: bool,
+        _value: String,
+        _clean_flag: bool,
     ) {
         emitln!(ctx.writer, "//move to transient with clean flag");
         let base_offset = "$transient_base_offset";
@@ -496,8 +496,8 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
-        value: String,
-        clean_flag: bool,
+        _value: String,
+        _clean_flag: bool,
     ) {
         emitln!(ctx.writer, "//move to external with clean flag");
         let base_offset = "$external_base_offset";
@@ -564,7 +564,7 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
-        returned_value: String
+        _returned_value: String
     ) {
         emitln!(ctx.writer, "//move from external");
         // Obtain the storage base offset for this resource.
@@ -637,7 +637,7 @@ impl Generator {
         ctx: &Context,
         struct_id: &QualifiedInstId<StructId>,
         addr: String,
-        returned_value: String,
+        _returned_value: String,
     ) {
 
         emitln!(ctx.writer, "//move from transient");
@@ -1458,6 +1458,8 @@ impl Generator {
         //     make_external_ptr
         // );
     }
+
+    #[allow(dead_code)]
     pub(crate) fn borrow_transient(
         &mut self,
         ctx: &Context,
