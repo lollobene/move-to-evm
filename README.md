@@ -1,7 +1,6 @@
 # Let's Move to EVM: Secure Compilation with IRM
 
 This repository is a fork of the [original Move language repository](https://github.com/move-language/move).
-It contains our work on the MoveToEVM compiler for CCS submission #573, enhanced with an Inlined Reference Monitor (IRM) to ensure Move’s safety guarantees are preserved in the Ethereum Virtual Machine (EVM) environment.
 
 ## Installation
 
