@@ -1,9 +1,0 @@
-[package]
-name = "Misc"
-version = "0.0.0"
-
-[addresses]
-deploy_address = "0x0123"
-
-[dependencies]
-MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "language/move-stdlib/", rev = "main", addr_subst = { "std" = "0x1" } }
