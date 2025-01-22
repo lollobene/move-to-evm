@@ -1,16 +1,17 @@
 # Let's Move to EVM: Secure Compilation with IRM
 
-This repository is a fork of the [original Move language repository](https://github.com/move-language/move).
+This repository contains the implementation of the IRM-based Move to EVM compiler.
+It is a fork of the [original Move language repository](https://github.com/move-language/move).
 
 ## Installation
 
-If you haven't already, open your terminal and clone [the Move repository](https://github.com/move-language/move):
+If you haven't already, open your terminal and clone [this repository](https://github.com/lets-move-to-evm/lets-move-to-evm):
 
 ```bash
-git clone https://github.com/move-language/move.git
+git clone https://github.com/lets-move-to-evm/lets-move-to-evm.git
 ```
 
-Go to the `move` directory and run the `dev_setup.sh` script:
+Go to the `lets-move-to-evm` directory and run the `dev_setup.sh` script:
 
 ```bash
 cd move
