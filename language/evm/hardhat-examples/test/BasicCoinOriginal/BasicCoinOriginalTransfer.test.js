@@ -30,63 +30,6 @@ contract('BasicCoin', function (accounts) {
             let result = await this.basicCoin.transfer(user2, '1', {
                 from: user1,
             });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
-            result = await this.basicCoin.transfer(user2, '1', {
-                from: user1,
-            });
         });
     });
 });

@@ -2,6 +2,7 @@ require('@nomiclabs/hardhat-waffle');
 require('@nomiclabs/hardhat-truffle5');
 require('hardhat-gas-reporter');
 require('hardhat-move');
+require('hardhat-tracer');
 
 require('dotenv').config();
 
@@ -33,9 +34,19 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-    solidity: '0.8.26',
+    solidity: {
+        version: '0.8.26',
+        settings: {
+            evmVersion: 'cancun',
+        },
+    },
     gasReporter: {
         enabled: true,
+        // includeIntrinsicGas: false,
+    },
+    tracer: {
+        gasCost: true,
+        // opcodes: ['MLOAD', 'MSTORE'],
     },
     networks: {
         ropsten: {
