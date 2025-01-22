@@ -318,7 +318,7 @@ impl<'a> FunctionGenerator<'a> {
                 "let ", 
                 std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
-                std::iter::once(params_str)
+                std::iter::once(params_str.clone())
             );
 
             if self.parent.returned_types.len() > 0 {
@@ -334,6 +334,20 @@ impl<'a> FunctionGenerator<'a> {
                 ctx.emit_block(||{
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
+                    self.parent.unstore_resource_from_transient(
+                        ctx, 
+                        &strct,
+                        params_str.clone(),
+                        res.clone()
+                    );
+
+                    self.parent.store_external_resource (
+                        ctx,
+                        &strct,
+                        params_str.clone(),
+                        res.clone()
+                    );
+
                     // get from transient
                     self.parent.move_from_transient(ctx, &strct, "sender".to_string(), res.clone());
                     // check not exists in external
@@ -403,7 +417,7 @@ impl<'a> FunctionGenerator<'a> {
                 "let ", 
                 std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
-                std::iter::once(params_str)
+                std::iter::once(params_str.clone())
             );
 
             if self.parent.returned_types.len() > 0 {
@@ -419,6 +433,20 @@ impl<'a> FunctionGenerator<'a> {
                 ctx.emit_block(||{
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
+                    self.parent.unstore_external_resource(
+                        ctx, 
+                        &strct,
+                        params_str.clone(),
+                        res.clone()
+                    );
+
+                    self.parent.store_resource_to_transient(
+                        ctx, 
+                        &strct, 
+                        params_str.clone(), 
+                        res.clone()
+                    );
+
                     // get from transient
                     self.parent.move_from_external(ctx, &strct, "sender".to_string(), res.clone());
                     // check not exists in external
