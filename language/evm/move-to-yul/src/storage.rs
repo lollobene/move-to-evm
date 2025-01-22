@@ -897,7 +897,7 @@ impl Generator {
         // At the base offset check the flag whether the resource exists.
         let transient_exists_call = self.call_builtin_str(
             ctx,
-            YulFunction::AlignedStorageLoad,
+            YulFunction::AlignedTransientLoad,
             std::iter::once(transient_base_offset.to_string()),
         );
 
