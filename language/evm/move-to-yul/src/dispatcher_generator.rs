@@ -442,7 +442,7 @@ impl Generator {
                     emitln!(ctx.writer, "{} := {}({})", param_name, res_in_name, param_name);
                     self.generate_res_in(ctx, ty.1.get_struct_id(ctx.env).unwrap());
                 }
-                else if ty.1.is_reference() {
+                else if ty.1.is_reference() && !ctx.is_storage_ref(&self.storage_type, &ty.1){
                     let struct_id = match ty.1 {
                         Type::Reference(_, type_box) => {type_box.get_struct_id(ctx.env).unwrap()}
                         _ => {panic!("")}
