@@ -300,7 +300,7 @@ contract('BasicCoin', function (accounts) {
             await this.basicCoin.register({ from: user1 });
             await expectRevert(
                 this.basicCoin.getBalance(user1),
-                'Transaction reverted without a reason string'
+                '0xffffffffffffffff'
             );
         });
         xit('should not allow to call register without protection layer', async function () {
