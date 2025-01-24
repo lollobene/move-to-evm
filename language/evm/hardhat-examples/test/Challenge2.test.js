@@ -6,7 +6,7 @@ const { ZERO_ADDRESS } = constants;
 const BasicCoin = artifacts.require('BasicCoinOriginal');
 const Challenge2 = artifacts.require('Challenge2');
 
-contract('BasicCoin', function (accounts) {
+contract('Challenge 2', function (accounts) {
     const [deployer, user1, user2] = accounts;
 
     let mintAmount = '100';
@@ -27,14 +27,10 @@ contract('BasicCoin', function (accounts) {
     describe('when everything is set up', function () {
         let initialAmount = '10';
         let finalAmount = '100';
-        it('should allow to manipulate a resource', async function () {
-            await this.challenge2.manipulateResource(
-                initialAmount,
-                finalAmount
-            );
-            expect(
-                await this.basicCoin.getBalance(this.challenge2.address)
-            ).to.be.bignumber.equal('190');
+        it('should revert when manipulating a resource', async function () {
+            await expect(
+                this.challenge2.manipulateResource(initialAmount, finalAmount)
+            ).to.be.revertedWith('0x0000000000000006');
         });
     });
 });

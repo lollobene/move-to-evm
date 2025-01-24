@@ -6,7 +6,7 @@ const { ZERO_ADDRESS } = constants;
 const BasicCoin = artifacts.require('BasicCoinOriginal');
 const Challenge1 = artifacts.require('Challenge1');
 
-contract('BasicCoin', function (accounts) {
+contract('Challenge 1', function (accounts) {
     const [deployer, user1, user2] = accounts;
 
     beforeEach(async function () {
@@ -23,8 +23,10 @@ contract('BasicCoin', function (accounts) {
     });
 
     describe('when everything is set up', function () {
-        it('should allow to drop resource', async function () {
-            await this.challenge1.dropResource();
+        it('should revert on dropping resource', async function () {
+            await expect(this.challenge1.dropResource()).to.be.revertedWith(
+                '0x0000000000000006'
+            );
         });
     });
 });

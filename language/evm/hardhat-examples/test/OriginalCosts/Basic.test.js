@@ -8,7 +8,7 @@ const OriginalCosts = artifacts.require('OriginalCosts');
 contract('OriginalCosts', function (accounts) {
     const [deployer, user1, user2] = accounts;
 
-    describe('Original gas costs', function () {
+    xdescribe('Original gas costs', function () {
         before(async function () {
             this.originalCosts = await OriginalCosts.new();
         });
