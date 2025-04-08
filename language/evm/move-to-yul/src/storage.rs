@@ -8,6 +8,18 @@ use move_model::{
     ty::Type,
 };
 
+// resource management
+// move_to (storage): move resource from memory to storage
+// move_to_transient: move resource from memory to transient storage
+// move_from_storage: move resource from storage to memory
+// move_from_transient: move resource from transient storage to memory
+
+// store data
+// write_to_storage: write data from memory to storage
+// write_to_transient: write data from memory to transient storage
+// remove_from_storage: remove data from storage to transient
+// remove_from_transient: remove data from transient to storage
+
 impl Generator {
     /// Move resource from memory to storage.
     pub(crate) fn move_to(
@@ -21,6 +33,7 @@ impl Generator {
         self.move_to_addr(ctx, struct_id, addr, value)
     }
 
+    // TODO rename this to pl_externals
     /// Move resource from memory to external of protection layer.
     pub(crate) fn move_to_external(
         &mut self,
@@ -33,6 +46,7 @@ impl Generator {
         self.move_to_external_with_clean_flag(ctx, struct_id, signer_ref, value, false)
     }
 
+    // TODO check if this moves a resource to the transient storage.
     /// Move resource from memory to transient storage.
     pub(crate) fn move_to_transient(
         &mut self,
@@ -45,6 +59,7 @@ impl Generator {
         self.move_to_transient_with_clean_flag(ctx, struct_id, signer_ref, value, false);
     }
 
+    // TODO check what this should do and rename it to pl_transients
     /// Move resource from memory to transient storage.
     pub(crate) fn protection_layer_store_transient(
         &mut self,
@@ -57,6 +72,7 @@ impl Generator {
         self.protection_layer_store_transient_with_clean_flag(ctx, struct_id, signer_ref, value, false);
     }
 
+    // TODO check difference with move_to_transient and eventually delete it or rename it pl_transients
     pub(crate) fn store_resource_to_transient(
         &mut self,
         ctx: &Context,
@@ -67,6 +83,7 @@ impl Generator {
         self.store_resource_to_transient_with_clean_flag(ctx, struct_id, res_id, value, false);
     }
 
+    // TODO check what this does and where is it used. eventually merge it with protection_layer_store_transient
     pub(crate) fn store_external_resource(
         &mut self,
         ctx: &Context,
@@ -77,6 +94,7 @@ impl Generator {
         self.store_external_resource_with_clean_flag(ctx, struct_id, res_id, value, false);
     }
 
+    // TODO check if clean_flag is needed
     pub(crate) fn store_external_resource_with_clean_flag(
         &mut self,
         ctx: &Context,
@@ -145,6 +163,7 @@ impl Generator {
 
     }
 
+    // TODO this should be merged with store_external_resource, adding the boolean parameter 
     pub(crate) fn unstore_external_resource (
         &mut self,
         ctx: &Context,
@@ -218,6 +237,7 @@ impl Generator {
         })
     }
 
+    // TODO check difference with move_to_transient and eventually delete it or rename it
     pub(crate) fn store_resource_to_transient_with_clean_flag(
         &mut self,
         ctx: &Context,
@@ -285,6 +305,7 @@ impl Generator {
         });
     }
 
+    // TODO to be done together with store_resource_to_transient
     pub(crate) fn unstore_resource_from_transient(
         &mut self,
         ctx: &Context,
@@ -706,6 +727,7 @@ impl Generator {
         // })
 
     }
+    
     /// Move resource from memory to storage, with direct address.
     pub(crate) fn move_to_addr(
         &mut self,
@@ -1505,6 +1527,7 @@ impl Generator {
         )
     }
     /// Returns an expression for checking whether a resource exists.
+    
     pub(crate) fn exists_check(
         &mut self,
         ctx: &Context,

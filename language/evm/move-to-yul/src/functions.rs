@@ -460,6 +460,7 @@ impl<'a> FunctionGenerator<'a> {
         });
 
     }
+    
     /// Compute the locals in the given function which are borrowed from and which are not
     /// already indirections to memory (like structs or vectors) Such locals need
     /// to be evaded to memory and cannot be kept on the stack, so we can create references
