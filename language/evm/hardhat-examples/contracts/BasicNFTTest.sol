@@ -12,6 +12,8 @@ interface IBasicNFT is IProtectionLayerV2 {
     function initToken(string memory, string memory) external;
     function mint(uint64, address) external;
     function transfer(address, uint64) external;
+    function approve(address, uint64) external;
+    function transferFrom(address, address, uint64) external;
     function withdraw(uint64) external returns (uint256);
     function deposit(address, uint256) external;
     function balanceOf(address) external view returns (uint64);
@@ -58,5 +60,20 @@ contract BasicNFTTestV1 {
     function transfer(address signer, uint64 tokenId, address to) public {
         require(msg.sender == address(basicNFT), 'Unauthorized');
         basicNFT.transfer(to, tokenId);
+    }
+
+    function approve(address signer, address to, uint64 tokenId) public {
+        require(msg.sender == address(basicNFT), 'Unauthorized');
+        basicNFT.approve(to, tokenId);
+    }
+
+    function transferFrom(
+        address signer,
+        address from,
+        address to,
+        uint64 tokenId
+    ) public {
+        require(msg.sender == address(basicNFT), 'Unauthorized');
+        basicNFT.transferFrom(from, to, tokenId);
     }
 }

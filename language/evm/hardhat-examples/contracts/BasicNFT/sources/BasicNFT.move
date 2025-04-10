@@ -15,6 +15,8 @@ module Evm::basic_nft {
     const EINSUFFICIENT_BALANCE: u64 = 0x9;
     const ENO_TOKEN_IN_TOKEN_STORE: u64 = 0xA;
     const EINVALID_TOKEN_ID: u64 = 0xB;
+    const EINVALID_APPROVAL: u64 = 0xC;
+    const EAPPROVAL_NOT_FOUND: u64 = 0xD;
     const MAX_NFT_NAME_LENGTH: u64 = 32;
     const MAX_URI_LENGTH: u64 = 256;
 
@@ -32,7 +34,13 @@ module Evm::basic_nft {
     /// Represents token resources owned by token owner
     struct TokenStore has key {
         tokens: Table<u64, Token>,
+        approvals: Table<u64, TransferApproval>,
         amount: u64
+    }
+
+    struct TransferApproval has key, drop {
+        approved: address,
+        token_id: u64,
     }
 
     struct MintCapability has key {}
@@ -136,12 +144,59 @@ module Evm::basic_nft {
         deposit(to, token);
     }
 
-    // #[callable(sig=b"depositToken(uint256)")]
-    // public fun deposit_token(token: Token) acquires TokenStore {
-    //     let account_addr = protection_layer_signer_address();
-    //     initialize_token_store();
-    //     deposit(account_addr, token)
-    // }
+    #[callable(sig=b"transferFrom(address, address, uint64)")]
+    public fun transfer_from(
+        from: address,
+        to: address,
+        token_id: u64,
+    ) acquires TokenStore {
+        check_approval(from, token_id);
+        let token = withdraw_internal(from, token_id);
+        deposit(to, token);
+    }
+
+    #[callable(sig=b"approve(address, uint64)")]
+    public fun approve(
+        to: address,
+        token_id: u64,
+    ) acquires TokenStore {
+        let account_addr = protection_layer_signer_address();
+        assert!(
+            exists<TokenStore>(account_addr),
+            ETOKEN_STORE_NOT_PUBLISHED,
+        );
+        let token_store = borrow_global_mut<TokenStore>(account_addr);
+        assert!(
+            Table::contains(&token_store.tokens, &token_id),
+            EINVALID_TOKEN_MERGE
+        );
+        Table::insert(
+            &mut token_store.approvals,
+            &token_id,
+            TransferApproval {
+                approved: to,
+                token_id: copy token_id,
+            }
+        );
+    }
+
+
+    fun check_approval(
+        from: address,
+        token_id: u64
+    ) acquires TokenStore {
+        let token_store = borrow_global_mut<TokenStore>(from);
+        assert!(
+            Table::contains(&token_store.approvals, &token_id),
+            EAPPROVAL_NOT_FOUND
+        );
+        let transfer_approval = Table::borrow(&mut token_store.approvals, &token_id);
+        assert!(
+            transfer_approval.approved == protection_layer_signer_address(),
+            EINVALID_APPROVAL
+        );
+        Table::remove(&mut token_store.approvals, &token_id);
+    }
 
     #[callable(sig=b"withdraw(uint64) returns (uint256)")]
     public fun withdraw(
@@ -158,6 +213,7 @@ module Evm::basic_nft {
                 account,
                 TokenStore {
                     tokens: Table::empty<u64, Token>(),
+                    approvals: Table::empty<u64, TransferApproval>(),
                     amount: 0
                 },
             );
@@ -173,7 +229,7 @@ module Evm::basic_nft {
 
         let token_store = borrow_global_mut<TokenStore>(account_addr);
         let token_id = token.id;
-
+        token_store.amount = token_store.amount + 1;
         
         Table::insert(&mut token_store.tokens, &token_id, token);
         
@@ -188,13 +244,14 @@ module Evm::basic_nft {
             ETOKEN_STORE_NOT_PUBLISHED,
         );
         
-        let tokens = &mut borrow_global_mut<TokenStore>(account_addr).tokens;
+        let token_store = borrow_global_mut<TokenStore>(account_addr);
+        let tokens = &mut token_store.tokens;
         assert!(
             Table::contains(tokens, &id),
             ENO_TOKEN_IN_TOKEN_STORE,
         );
-        // balance > amount and amount > 0 indirectly asserted that balance > 0.
         
+        token_store.amount = token_store.amount - 1;
         Table::remove(tokens, &id)
         
     }
