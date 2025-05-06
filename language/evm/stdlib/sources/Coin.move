@@ -1,9 +1,9 @@
 #[evm_contract]
-module Evm::basic_coin {
+module Evm::basicCoin {
     use Evm::Evm::{sender, sign, require, /*address_of,*/ protection_layer_signer_address};
-    use Evm::U256::{U256, add, sub, zero, /*u256_from_u128, */ le};
+    use Evm::U256::{U256, add, sub, zero, /*u256_from_u128,*/ le};
 
-    struct Coin has key {
+    struct Coin has key, store {
         value: U256
     }
 
