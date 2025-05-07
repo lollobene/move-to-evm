@@ -1,0 +1,17 @@
+[package]
+name = "translation"
+version = "1.0.0"
+authors = []
+
+[addresses]
+deploy_address = "0x0123"
+other_address = "0x4567"
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "mainnet"
+subdir = "aptos-move/framework/aptos-framework"
+
+[dev-dependencies]
