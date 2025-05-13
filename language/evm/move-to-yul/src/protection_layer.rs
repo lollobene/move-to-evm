@@ -80,6 +80,9 @@ SaveSigner: "() {
     tstore(0x1, caller())
 }",
 GetSigner: "() -> addr {
+    if iszero(tload(0x1)) {
+        $Abort2(7)
+    }
     addr := tload(0x1)
 }",
 DeleteSigner: "() {
@@ -132,7 +135,7 @@ NewResourceId: "() -> id {
     sstore(0x6, add(id, 1))
 }",
 
-// TODO check Abort codes
+// TODO LOZ check Abort codes
 // Validation function
 Validate: "() -> flag {
     $AbortProtected()
