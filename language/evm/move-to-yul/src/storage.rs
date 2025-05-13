@@ -932,7 +932,9 @@ impl Generator {
             "ref_in := {}",
             make_resource_ptr
         );
+        // TODO LOZ return the correct pointer if the resource exists in transient or external storage. Now works only for external storage.
 
+        
         // let make_transient_ptr = self.call_builtin_str(
         //     ctx,
         //     YulFunction::MakePtr,

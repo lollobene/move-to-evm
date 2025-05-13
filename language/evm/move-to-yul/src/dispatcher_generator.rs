@@ -808,7 +808,7 @@ impl Generator {
         self.need_protection_auxiliary_function(function_name, Box::new(generate_fun));        
     }
 
-    // TODO use the same naming convention for res_id in generate_res_out and generate_res_in. Maybe check also other functions
+    // TODO LOZ use the same naming convention for res_id in generate_res_out and generate_res_in. Maybe check also other functions
     fn generate_res_in(&mut self, ctx: &Context, struct_id: QualifiedInstId<StructId>) {
         let type_hash = self.type_hash(ctx, &struct_id.to_type());
         let function_name = format!("$ResIn{:x}", type_hash);
