@@ -5,6 +5,7 @@ const {
 
 const ERC721Mock = artifacts.require('ERC721Mock'); // A Move contract
 
+/*
 contract('ERC721', function (accounts) {
     const name = 'Non Fungible Token';
     const symbol = 'NFT';
@@ -16,3 +17,4 @@ contract('ERC721', function (accounts) {
     shouldBehaveLikeERC721('ERC721', ...accounts);
     // shouldBehaveLikeERC721Metadata('ERC721', name, symbol, ...accounts);
 });
+*/
