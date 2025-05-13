@@ -67,64 +67,64 @@ Abort2: "(code) {
 }",
 // Protection flag functions
 IsProtected: "() -> flag {
-    flag := sload(0x0)
+    flag := tload(0x0)
 }",
 Protect: "() {
-    sstore(0x0, 1)
+    tstore(0x0, 1)
 }",
 Release: "() {
-    sstore(0x0, 0)
+    tstore(0x0, 0)
 }",
 // Signer functions
 SaveSigner: "() {
-    sstore(0x1, caller())
+    tstore(0x1, caller())
 }",
 GetSigner: "() -> addr {
-    addr := sload(0x1)
+    addr := tload(0x1)
 }",
 DeleteSigner: "() {
-    sstore(0x1, 0)
+    tstore(0x1, 0)
 }",
 // Protected contract functions
 SaveProtectedContract: "(addr) {
-    sstore(0x2, addr)
+    tstore(0x2, addr)
 }",
 GetProtectedContract: "() -> addr {
-    addr := sload(0x2)
+    addr := tload(0x2)
 }",
 DeleteProtectedContract: "() {
-    sstore(0x2, 0)
+    tstore(0x2, 0)
 }",
 // Reentrancy flag functions
 SetReentrancyFlag: "() {
-    sstore(0x3, 1)
+    tstore(0x3, 1)
 }",
 ClearReentrancyFlag: "() {
-    sstore(0x3, 0)
+    tstore(0x3, 0)
 }",
 IsReentrancyFlagSet: "() -> flag {
-    flag := sload(0x3)
+    flag := tload(0x3)
 }",
 // Hot potatoes AKA external storage functions
 SizeOFH: "() -> size {
-    size := sload(0x4)
+    size := tload(0x4)
 }",
 IncrementH: "() {
-    sstore(0x4, add(sload(0x4), 1))
+    tstore(0x4, add(tload(0x4), 1))
 }",
 DecrementH: "() {
-    sstore(0x4, sub(sload(0x4), 1))
+    tstore(0x4, sub(tload(0x4), 1))
 }",
 
 // Transient functions
 SizeOfT: "() -> size {
-    size := sload(0x5)
+    size := tload(0x5)
 }",
 IncrementT: "() {
-    sstore(0x5, add(sload(0x5), 1))
+    tstore(0x5, add(tload(0x5), 1))
 }",
 DecrementT: "() {
-    sstore(0x5, sub(sload(0x5), 1))
+    tstore(0x5, sub(tload(0x5), 1))
 }",
 
 NewResourceId: "() -> id {

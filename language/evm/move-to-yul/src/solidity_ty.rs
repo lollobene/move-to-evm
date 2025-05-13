@@ -121,6 +121,7 @@ impl SolidityPrimitiveType {
                 _ => false,
             },
             Type::Struct(mid, sid, _) => ctx.is_u256(mid.qualified(*sid)) || ctx.is_module_defined_resource(mid, mid.qualified(*sid)),
+            Type::Reference(_, _) => true,
             _ => false,
         }
     }
@@ -367,9 +368,11 @@ impl SolidityType {
                         generate_tuple(&tys) // translate into tuple type
                     }
                 }
-            }
+            },
+            Reference(_, _) => {
+                SolidityType::Primitive(SolidityPrimitiveType::Uint(256))
+            },
             TypeParameter(_)
-            | Reference(_, _)
             | Fun(_, _)
             | TypeDomain(_)
             | ResourceDomain(_, _, _)

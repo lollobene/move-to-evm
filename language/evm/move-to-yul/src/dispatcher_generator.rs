@@ -163,7 +163,7 @@ impl Generator {
         solidity_sig: &SoliditySignature,
         selectors: &mut BTreeMap<String, QualifiedId<FunId>>
     ) {
-        let function_name = String::from("protection_layer");
+        let function_name = String::from("$ProtectionLayer");
         let fun_sig = String::from("protectionLayer(address,bytes)");
         let function_selector =
             format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
@@ -227,7 +227,7 @@ impl Generator {
         solidity_sig: &SoliditySignature,
         selectors: &mut BTreeMap<String, QualifiedId<FunId>>
     ) {
-        let function_name = String::from("store_external");
+        let function_name = String::from("$StoreExternal");
         let fun_sig = String::from("storeExternal(uint256)");
         let function_selector =
             format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
@@ -289,7 +289,7 @@ impl Generator {
         solidity_sig: &SoliditySignature,
         selectors: &mut BTreeMap<String, QualifiedId<FunId>>
     ) {
-        let function_name = String::from("unstore_external");
+        let function_name = String::from("$UnstoreExternal");
         let fun_sig = String::from("unstoreExternal(uint256)");
         let function_selector =
             format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
@@ -389,7 +389,7 @@ impl Generator {
                     "function should check incoming reference",
                 );
                 emitln!(ctx.writer, "// function should check incoming reference");
-            }      
+            }
             // TODO: check delegate call
             if !attributes::is_payable_fun(fun) {
                 self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
@@ -442,6 +442,18 @@ impl Generator {
                     emitln!(ctx.writer, "{} := {}({})", param_name, res_in_name, param_name);
                     self.generate_res_in(ctx, ty.1.get_struct_id(ctx.env).unwrap());
                 }
+                else if ty.1.is_reference() && !ctx.is_storage_ref(&self.storage_type, &ty.1){
+                    let struct_id = match ty.1 {
+                        Type::Reference(_, type_box) => {type_box.get_struct_id(ctx.env).unwrap()}
+                        _ => {panic!("")}
+                    };
+                    let param_name = format!("param_{}", ty.0);
+                    emitln!(ctx.writer, "// {}", param_name);
+                    let type_hash = self.type_hash(ctx, &struct_id.to_type());
+                    let ref_in_name = format!("$RefIn{:x}", type_hash);
+                    emitln!(ctx.writer, "{} := {}({})", param_name, ref_in_name, param_name);
+                    self.generate_ref_in(ctx, struct_id);
+                }
                 else {continue};
             }
                     
@@ -486,7 +498,7 @@ impl Generator {
                     emitln!(ctx.writer, "// {}", ret_name);
                     let type_hash = self.type_hash(ctx, &ty.1.get_struct_id(ctx.env).unwrap().to_type());
                     let res_out_name = format!("$ResOut{:x}", type_hash);
-                    emitln!(ctx.writer, "let res_id_{} := {}({})", ty.0, res_out_name, ret_name);
+                    emitln!(ctx.writer, "let resource_id_{} := {}({})", ty.0, res_out_name, ret_name);
                     self.add_retuned_type(ty.1.get_struct_id(ctx.env).unwrap());
                     self.generate_res_out(ctx, ty.1.get_struct_id(ctx.env).unwrap());
                 }
@@ -498,7 +510,7 @@ impl Generator {
             if self.should_check_output_resource(ctx, fun) {
                 emitln!(
                     ctx.writer,
-                    "{}(res_id_0, memPos)",
+                    "{}(resource_id_0, memPos)",
                     encoding_fun_name
                 );
                 emitln!(
@@ -596,7 +608,10 @@ impl Generator {
             // If this is not a creator which returns a storage value, add return types.
             types.extend(fun.get_return_types().into_iter())
         }
-        types.into_iter().all(|ty| !ty.is_reference())
+        
+        // Commented out because we do support references
+        // types.into_iter().all(|ty| !ty.is_reference())
+        true
     }
 
     /// Generate optional receive function.
@@ -726,55 +741,67 @@ impl Generator {
     fn generate_res_out(&mut self, ctx: &Context, struct_id: QualifiedInstId<StructId>) {
         let type_hash = self.type_hash(ctx, &struct_id.to_type());
         let function_name = format!("$ResOut{:x}", type_hash);
-        let res = String::from("res");
+        let res = "resource".to_string();
+        let res_id = "resource_id".to_string();
+        let _signer = "signer".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
-            emit!(ctx.writer, "({}) -> $res_id ", res);
+            emit!(ctx.writer, "({}) -> {} ", res.clone(), res_id);
             ctx.emit_block(||{
                 // Increase resource ID
-                // emitln!(ctx.writer, "$res_id := $NewResourceId()");
                 gen.call_protection_layer_builtin_with_result(
                     ctx, 
                     "", 
-                    std::iter::once("$res_id".to_string()), 
+                    std::iter::once(res_id.clone()), 
                     YulProtectionFunction::NewResourceId,
                     std::iter::empty(),
                 );
                 // Increase size of H
-                // emitln!(ctx.writer, "$IncrementH()");
                 gen.call_protection_layer_builtin(
                     ctx, 
                     YulProtectionFunction::IncrementH, 
                     std::iter::empty(),
                 );
                 
-                gen.call_protection_layer_builtin_with_result(
-                    ctx, 
-                    "let ", 
-                    std::iter::once("$t0".to_string()), 
-                    YulProtectionFunction::GetSigner, 
-                    std::iter::empty(),
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
                 );
 
-                gen.call_protection_layer_builtin_with_result(
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once(signer.clone()), 
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once("signer, resource_id".to_string())
+                // );
+
+                gen.save_resource(
                     ctx, 
-                    "let ", 
-                    std::iter::once("$t1".to_string()), 
-                    YulProtectionFunction::ComputeHash,
-                    std::iter::once("$t0, $res_id".to_string())
+                    &struct_id,
+                    res.clone(),
+                    res_id.clone()
                 );
 
                 // Save the resource to external
                 gen.move_to_transient(
                     ctx,
                     &struct_id,
-                    "$t1".to_string(),
-                    res
+                    "sender".to_string(),
+                    res.clone()
                 );
                 // we compute the key as the hash of (0x00resID)
                 gen.call_protection_layer_builtin(
                     ctx,
                     YulProtectionFunction::StoreTypeHash,
-                    std::iter::once(format!("$res_id, 0x{:x}", type_hash))
+                    std::iter::once(format!("{}, 0x{:x}", res_id, type_hash))
                 );
             });
         };
@@ -785,45 +812,100 @@ impl Generator {
     fn generate_res_in(&mut self, ctx: &Context, struct_id: QualifiedInstId<StructId>) {
         let type_hash = self.type_hash(ctx, &struct_id.to_type());
         let function_name = format!("$ResIn{:x}", type_hash);
-        let res_id = String::from("$res_id");
+        let res = "resource".to_string();
+        let res_id = "resource_id".to_string();
+        let _signer = "signer".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
-            emit!(ctx.writer, "({}) -> $res ", res_id);
+            emit!(ctx.writer, "({}) -> {} ", res_id.clone(), res.clone());
             ctx.emit_block(||{
                 // Decrease size of H
-                // emitln!(ctx.writer, "$DecrementH()");
                 gen.call_protection_layer_builtin(
                     ctx, 
                     YulProtectionFunction::DecrementH, 
                     std::iter::empty(),
                 );
-                
-                // emitln!(ctx.writer, "let $t0 := $GetSigner()");
-                gen.call_protection_layer_builtin_with_result(
-                    ctx, 
-                    "let ",
-                    std::iter::once("$t0".to_string()), 
-                    YulProtectionFunction::GetSigner, 
-                    std::iter::empty(),
-                );
 
-                gen.call_protection_layer_builtin_with_result(
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
+                );
+                
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ",
+                //     std::iter::once(signer.clone()), 
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once(format!("{}, {}", signer, res_id))
+                // );
+
+                gen.unsave_resource(
                     ctx, 
-                    "let ", 
-                    std::iter::once("$t1".to_string()), 
-                    YulProtectionFunction::ComputeHash,
-                    std::iter::once(format!("$t0, {}", res_id))
+                    &struct_id,
+                    res_id.clone(),
+                    res.clone()
                 );
 
                 gen.move_from_transient(
                     ctx, 
                     &struct_id, 
-                    "$t1".to_string()
+                    "sender".to_string(),
+                    "resource".to_string()
                 );
 
                 gen.call_protection_layer_builtin(
                     ctx, 
                     YulProtectionFunction::RemoveTypeHash, 
-                    std::iter::once("$res_id".to_string())
+                    std::iter::once(res_id.clone())
+                );
+            });
+        };
+        self.need_protection_auxiliary_function(function_name, Box::new(generate_fun));
+    }
+
+    fn generate_ref_in(&mut self, ctx: &Context, struct_id: QualifiedInstId<StructId>) {
+        let type_hash = self.type_hash(ctx, &struct_id.to_type());
+        let function_name = format!("$RefIn{:x}", type_hash);
+        let res_id = "res_id".to_string();
+        let ref_in = "ref_in".to_string();
+        let _signer = "signer".to_string();
+        let generate_fun = move |gen: &mut Generator, ctx: &Context|{
+            emit!(ctx.writer, "({}) -> {} ", res_id.clone(), ref_in.clone());
+            ctx.emit_block( ||{
+                
+                emitln!(
+                    ctx.writer,
+                    "let sender := caller()"
+                );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx,
+                //     "let ",
+                //     std::iter::once(signer.clone()),
+                //     YulProtectionFunction::GetSigner, 
+                //     std::iter::empty(),
+                // );
+
+                // gen.call_protection_layer_builtin_with_result(
+                //     ctx, 
+                //     "let ", 
+                //     std::iter::once("hash".to_string()), 
+                //     YulProtectionFunction::ComputeHash,
+                //     std::iter::once(format!("{}, {}", signer, res_id))
+                // );
+
+                gen.borrow_ref(
+                    ctx, 
+                    &struct_id.to_type(), 
+                    "sender".to_string(),
+                    res_id.clone(),
                 );
             });
         };

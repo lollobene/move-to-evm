@@ -185,11 +185,11 @@ impl<'a> FunctionGenerator<'a> {
     }
 
     fn protection_function(&mut self, ctx: &Context) {
-        let function_name = "protection_layer".to_string();
+        let function_name = "$ProtectionLayer".to_string();
         let params_str = "protected_contract, cb".to_string();
         emit!(
             ctx.writer,
-            "function {}({}) -> $result",
+            "function {}({}) -> result",
             function_name,
             params_str
         );
@@ -226,12 +226,16 @@ impl<'a> FunctionGenerator<'a> {
                 std::iter::once("protected_contract".to_string()),
             );
 
-            emitln!(ctx.writer, "log0(add(cb, 0x20), mload(cb))");
+            // emitln!(ctx.writer, "log0(add(cb, 0x20), mload(cb))");
             // emitln!(ctx.writer, "log0(cb, 0x40)");
             // emitln!(ctx.writer, "log0(add(cb, 0x20), 0x40)");
-            emitln!(ctx.writer, "$result := call(gas(), protected_contract, 0, add(cb, 0x20), mload(cb), 0, 0)");
+            
+            emitln!(ctx.writer, "result := call(gas(), protected_contract, 0, add(cb, 0x20), mload(cb), 0, 0)");
+            
             // assert result
-            emitln!(ctx.writer, "if iszero($result) { revert(0, 0) }");
+
+            emitln!(ctx.writer, "if iszero(result) { revert(0, 0) }");
+            
             // this sets flag back to false
             
             // emitln!(ctx.writer, "$Release()");
@@ -258,11 +262,11 @@ impl<'a> FunctionGenerator<'a> {
     }
 
     fn store_external_function(&mut self, ctx: &Context) {
-        let function_name = "store_external".to_string();
-        let params_str = "res_id".to_string();
-        let signer= "signer".to_string();
-        let storage_hash = "storage_hash".to_string();
-        let res = "$res".to_string();
+        let function_name = "$StoreExternal".to_string();
+        let params_str = "resource_id".to_string();
+        let _signer= "signer".to_string();
+        let _storage_hash = "storage_hash".to_string();
+        let res = "resource".to_string();
 
         emit!(
             ctx.writer,
@@ -286,34 +290,40 @@ impl<'a> FunctionGenerator<'a> {
                 std::iter::empty(),
             );
 
-            // emitln!(ctx.writer, "let $t0 := $GetSigner()");
-            self.parent.call_protection_layer_builtin_with_result(
-                ctx,
-                "let ",
-                std::iter::once(signer.clone()),
-                YulProtectionFunction::GetSigner,
-                std::iter::empty(),
+            emitln!(
+                ctx.writer,
+                "let sender := caller()"
             );
 
-            self.parent.call_protection_layer_builtin_with_result(
-                ctx, 
-                "let ", 
-                std::iter::once(storage_hash.clone()), 
-                YulProtectionFunction::ComputeHash, 
-                std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
-            );
+            // // emitln!(ctx.writer, "let $t0 := $GetSigner()");
+            // self.parent.call_protection_layer_builtin_with_result(
+            //     ctx,
+            //     "let ",
+            //     std::iter::once(signer.clone()),
+            //     YulProtectionFunction::GetSigner,
+            //     std::iter::empty(),
+            // );
+
+            // self.parent.call_protection_layer_builtin_with_result(
+            //     ctx, 
+            //     "let ", 
+            //     std::iter::once(storage_hash.clone()), 
+            //     YulProtectionFunction::ComputeHash, 
+            //     std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
+            // );
+
             emitln!(ctx.writer, "let {}", res.clone());
             self.parent.call_protection_layer_builtin_with_result(
                 ctx, 
                 "let ", 
-                std::iter::once("typeHash".to_string()), 
+                std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
                 std::iter::once(params_str)
             );
 
             if self.parent.returned_types.len() > 0 {
 
-                emitln!(ctx.writer, "switch typeHash");
+                emitln!(ctx.writer, "switch type_hash");
             }
             
             for strct in self.parent.returned_types.clone() {
@@ -325,10 +335,10 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
-                    self.parent.move_from_transient(ctx, &strct, storage_hash.clone());
+                    self.parent.move_from_transient(ctx, &strct, "sender".to_string(), res.clone());
                     // check not exists in external
                     // store to external
-                    self.parent.move_to_external(ctx, &strct, storage_hash.clone(), res.clone());
+                    self.parent.move_to_external(ctx, &strct, "sender".to_string(), res.clone());
                 });
             }
             if self.parent.returned_types.len() > 0 {
@@ -340,11 +350,11 @@ impl<'a> FunctionGenerator<'a> {
     }
 
     fn unstore_external_function(&mut self, ctx: &Context) {
-        let function_name = "unstore_external".to_string();
-        let params_str = "res_id".to_string();
-        let signer = "signer".to_string();
-        let storage_hash = "storage_hash".to_string();
-        let res = "$res".to_string();
+        let function_name = "$UnstoreExternal".to_string();
+        let params_str = "resource_id".to_string();
+        let _signer = "signer".to_string();
+        let _storage_hash = "storage_hash".to_string();
+        let res = "resource".to_string();
         emit!(
             ctx.writer,
             "function {}({}) ",
@@ -366,34 +376,39 @@ impl<'a> FunctionGenerator<'a> {
                 std::iter::empty(),
             );
 
-            self.parent.call_protection_layer_builtin_with_result(
-                ctx,
-                "let ",
-                std::iter::once(signer.clone()),
-                YulProtectionFunction::GetSigner,
-                std::iter::empty(),
+            emitln!(
+                ctx.writer,
+                "let sender := caller()"
             );
+            
+            // self.parent.call_protection_layer_builtin_with_result(
+            //     ctx,
+            //     "let ",
+            //     std::iter::once(signer.clone()),
+            //     YulProtectionFunction::GetSigner,
+            //     std::iter::empty(),
+            // );
 
-            self.parent.call_protection_layer_builtin_with_result(
-                ctx, 
-                "let ", 
-                std::iter::once(storage_hash.clone()), 
-                YulProtectionFunction::ComputeHash, 
-                std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
-            );
+            // self.parent.call_protection_layer_builtin_with_result(
+            //     ctx, 
+            //     "let ", 
+            //     std::iter::once(storage_hash.clone()), 
+            //     YulProtectionFunction::ComputeHash, 
+            //     std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
+            // );
 
             emitln!(ctx.writer, "let {}", res.to_string());
             self.parent.call_protection_layer_builtin_with_result(
                 ctx, 
                 "let ", 
-                std::iter::once("typeHash".to_string()), 
+                std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
                 std::iter::once(params_str)
             );
 
             if self.parent.returned_types.len() > 0 {
 
-                emitln!(ctx.writer, "switch typeHash");
+                emitln!(ctx.writer, "switch type_hash");
             }            
             
             for strct in self.parent.returned_types.clone() {
@@ -405,10 +420,10 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
-                    self.parent.move_from_external(ctx, &strct, storage_hash.clone());
+                    self.parent.move_from_external(ctx, &strct, "sender".to_string(), res.clone());
                     // check not exists in external
                     // store to external
-                    self.parent.move_to_transient(ctx, &strct, storage_hash.clone(), res.to_string());
+                    self.parent.move_to_transient(ctx, &strct, "sender".to_string(), res.clone());
                 });
             }
             if self.parent.returned_types.len() > 0 {

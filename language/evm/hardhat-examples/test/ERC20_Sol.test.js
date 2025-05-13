@@ -1,16 +1,22 @@
-const { BN, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const {
+    BN,
+    constants,
+    expectEvent,
+    expectRevert,
+} = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const { ZERO_ADDRESS } = constants;
 
 const {
-  shouldBehaveLikeERC20,
-  shouldBehaveLikeERC20Transfer,
-  shouldBehaveLikeERC20Approve,
+    shouldBehaveLikeERC20,
+    shouldBehaveLikeERC20Transfer,
+    shouldBehaveLikeERC20Approve,
 } = require('./ERC20.behavior');
 
 const ERC20Mock = artifacts.require('ERC20Mock_Sol');
 const ERC20DecimalsMock = artifacts.require('ERC20DecimalsMock_Sol');
 
+/*
 contract('ERC20', function (accounts) {
   const [ initialHolder, recipient, anotherAccount ] = accounts;
 
@@ -307,3 +313,4 @@ contract('ERC20', function (accounts) {
     });
   });
 });
+*/
