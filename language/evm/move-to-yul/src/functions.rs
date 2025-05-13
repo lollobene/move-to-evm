@@ -217,7 +217,7 @@ impl<'a> FunctionGenerator<'a> {
                 std::iter::empty(),
             );
 
-            // TODO check protected_contract != address(0)
+            // TODO LOZ check protected_contract != address(0)
             
             // emitln!(ctx.writer, "$SaveProtectedContract(protected_contract)");
             self.parent.call_protection_layer_builtin(
