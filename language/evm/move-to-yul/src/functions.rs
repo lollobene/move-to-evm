@@ -267,6 +267,8 @@ impl<'a> FunctionGenerator<'a> {
         let _signer= "signer".to_string();
         let _storage_hash = "storage_hash".to_string();
         let res = "resource".to_string();
+        let sender = "sender".to_string();
+        let hash = "hash".to_string();
 
         emit!(
             ctx.writer,
@@ -304,13 +306,13 @@ impl<'a> FunctionGenerator<'a> {
             //     std::iter::empty(),
             // );
 
-            // self.parent.call_protection_layer_builtin_with_result(
-            //     ctx, 
-            //     "let ", 
-            //     std::iter::once(storage_hash.clone()), 
-            //     YulProtectionFunction::ComputeHash, 
-            //     std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
-            // );
+            self.parent.call_protection_layer_builtin_with_result(
+                ctx, 
+                "let ", 
+                std::iter::once(hash.clone()), 
+                YulProtectionFunction::ComputeHash, 
+                std::iter::once(format!("{}, {}", sender.clone(), params_str.clone()))
+            );
 
             emitln!(ctx.writer, "let {}", res.clone());
             self.parent.call_protection_layer_builtin_with_result(
@@ -335,10 +337,10 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
-                    self.parent.move_from_transient(ctx, &strct, "sender".to_string(), res.clone());
+                    self.parent.move_from_transient(ctx, &strct, hash.clone(), res.clone());
                     // check not exists in external
                     // store to external
-                    self.parent.move_to_external(ctx, &strct, "sender".to_string(), res.clone());
+                    self.parent.move_to_external(ctx, &strct, hash.clone(), res.clone());
                 });
             }
             if self.parent.returned_types.len() > 0 {
@@ -355,6 +357,8 @@ impl<'a> FunctionGenerator<'a> {
         let _signer = "signer".to_string();
         let _storage_hash = "storage_hash".to_string();
         let res = "resource".to_string();
+        let sender = "sender".to_string();
+        let hash = "hash".to_string();
         emit!(
             ctx.writer,
             "function {}({}) ",
@@ -389,13 +393,13 @@ impl<'a> FunctionGenerator<'a> {
             //     std::iter::empty(),
             // );
 
-            // self.parent.call_protection_layer_builtin_with_result(
-            //     ctx, 
-            //     "let ", 
-            //     std::iter::once(storage_hash.clone()), 
-            //     YulProtectionFunction::ComputeHash, 
-            //     std::iter::once(format!("{}, {}", signer.clone(), params_str.clone()))
-            // );
+            self.parent.call_protection_layer_builtin_with_result(
+                ctx, 
+                "let ", 
+                std::iter::once(hash.clone()), 
+                YulProtectionFunction::ComputeHash, 
+                std::iter::once(format!("{}, {}", sender.clone(), params_str.clone()))
+            );
 
             emitln!(ctx.writer, "let {}", res.to_string());
             self.parent.call_protection_layer_builtin_with_result(
@@ -420,10 +424,10 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
-                    self.parent.move_from_external(ctx, &strct, "sender".to_string(), res.clone());
+                    self.parent.move_from_external(ctx, &strct, hash.clone(), res.clone());
                     // check not exists in external
                     // store to external
-                    self.parent.move_to_transient(ctx, &strct, "sender".to_string(), res.clone());
+                    self.parent.move_to_transient(ctx, &strct, hash.clone(), res.clone());
                 });
             }
             if self.parent.returned_types.len() > 0 {

@@ -186,7 +186,7 @@ ComputeHash: "(addr, resId) -> hash {
     let base := $Malloc2(0x40)
     mstore(base, addr)
     mstore(add(base, 0x20), resId)
-    hash := keccak256(base, 0x00)
+    hash := keccak256(base, 0x40)
 }" dep Malloc2,
 
 AbiDecodeProtectionLayer: "(headStart, dataEnd) -> value0, value1 {

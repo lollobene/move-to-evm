@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use codespan_reporting::diagnostic::Severity;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap};
 
 use itertools::Itertools;
 use regex::Regex;
@@ -744,6 +744,8 @@ impl Generator {
         let res = "resource".to_string();
         let res_id = "resource_id".to_string();
         let _signer = "signer".to_string();
+        let sender = "sender".to_string();
+        let hash = "hash".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res.clone(), res_id);
             ctx.emit_block(||{
@@ -775,13 +777,13 @@ impl Generator {
                 //     std::iter::empty(),
                 // );
 
-                // gen.call_protection_layer_builtin_with_result(
-                //     ctx, 
-                //     "let ", 
-                //     std::iter::once("hash".to_string()), 
-                //     YulProtectionFunction::ComputeHash,
-                //     std::iter::once("signer, resource_id".to_string())
-                // );
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once(hash.clone()), 
+                    YulProtectionFunction::ComputeHash,
+                    std::iter::once(format!("{}, {}", sender, res_id))
+                );
 
                 gen.save_resource(
                     ctx, 
@@ -794,7 +796,7 @@ impl Generator {
                 gen.move_to_transient(
                     ctx,
                     &struct_id,
-                    "sender".to_string(),
+                    hash.clone(),
                     res.clone()
                 );
                 // we compute the key as the hash of (0x00resID)
@@ -815,6 +817,8 @@ impl Generator {
         let res = "resource".to_string();
         let res_id = "resource_id".to_string();
         let _signer = "signer".to_string();
+        let sender = "sender".to_string();
+        let hash = "hash".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), res.clone());
             ctx.emit_block(||{
@@ -838,13 +842,13 @@ impl Generator {
                 //     std::iter::empty(),
                 // );
 
-                // gen.call_protection_layer_builtin_with_result(
-                //     ctx, 
-                //     "let ", 
-                //     std::iter::once("hash".to_string()), 
-                //     YulProtectionFunction::ComputeHash,
-                //     std::iter::once(format!("{}, {}", signer, res_id))
-                // );
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once(hash.clone()), 
+                    YulProtectionFunction::ComputeHash,
+                    std::iter::once(format!("{}, {}", sender, res_id))
+                );
 
                 gen.unsave_resource(
                     ctx, 
@@ -856,7 +860,7 @@ impl Generator {
                 gen.move_from_transient(
                     ctx, 
                     &struct_id, 
-                    "sender".to_string(),
+                    hash.clone(),
                     "resource".to_string()
                 );
 
@@ -876,6 +880,8 @@ impl Generator {
         let res_id = "res_id".to_string();
         let ref_in = "ref_in".to_string();
         let _signer = "signer".to_string();
+        let sender = "sender".to_string();
+        let hash = "hash".to_string();
         let generate_fun = move |gen: &mut Generator, ctx: &Context|{
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), ref_in.clone());
             ctx.emit_block( ||{
@@ -893,18 +899,18 @@ impl Generator {
                 //     std::iter::empty(),
                 // );
 
-                // gen.call_protection_layer_builtin_with_result(
-                //     ctx, 
-                //     "let ", 
-                //     std::iter::once("hash".to_string()), 
-                //     YulProtectionFunction::ComputeHash,
-                //     std::iter::once(format!("{}, {}", signer, res_id))
-                // );
+                gen.call_protection_layer_builtin_with_result(
+                    ctx, 
+                    "let ", 
+                    std::iter::once("hash".to_string()), 
+                    YulProtectionFunction::ComputeHash,
+                    std::iter::once(format!("{}, {}", sender, res_id))
+                );
 
                 gen.borrow_ref(
                     ctx, 
                     &struct_id.to_type(), 
-                    "sender".to_string(),
+                    hash.clone(),
                     res_id.clone(),
                 );
             });
