@@ -106,11 +106,12 @@ contract('Auction', function (accounts) {
             0,
         ]);
 
-        await this.basicCoin.protectionLayer(
+        let result = await this.basicCoin.protectionLayer(
             this.auction.address,
             startEncoding,
             { from: deployer }
         );
+        console.log('Start cost', result.receipt.gasUsed);
     });
     describe('when everyting is set up', function () {
         it('user 1 should be able to bid', async function () {
@@ -118,32 +119,35 @@ contract('Auction', function (accounts) {
                 user1,
                 10,
             ]);
-            await this.basicCoin.protectionLayer(
+            let result = await this.basicCoin.protectionLayer(
                 this.auction.address,
                 bidEncoding,
                 { from: user1 }
             );
+            console.log('Bid cost', result.receipt.gasUsed);
         });
         it('user 2 should be able to bid', async function () {
             let bidEncoding = auctionInterface.encodeFunctionData('bid', [
                 user2,
                 11,
             ]);
-            await this.basicCoin.protectionLayer(
+            let result = await this.basicCoin.protectionLayer(
                 this.auction.address,
                 bidEncoding,
                 { from: user2 }
             );
+            console.log('Bid cost', result.receipt.gasUsed);
         });
         it('auctioneer should be able to end the auction', async function () {
             let endEncoding = auctionInterface.encodeFunctionData('end', [
                 deployer,
             ]);
-            await this.basicCoin.protectionLayer(
+            let result = await this.basicCoin.protectionLayer(
                 this.auction.address,
                 endEncoding,
                 { from: deployer }
             );
+            console.log('End cost', result.receipt.gasUsed);
         });
         describe('after the auction is ended', function () {
             it('user 1 should not be able to bid', async function () {
