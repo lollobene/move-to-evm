@@ -1,7 +1,7 @@
 #[evm_contract]
 module Evm::bet {
-    use Evm::Evm::{sign, self, block_timestamp/*sender, address_of, require address_of,*/};
-    use Evm::U256::{U256, lt/*gt, add, sub, zero, le*/};
+    use Evm::Evm::{sign, self, block_timestamp, emit/*sender, address_of, require address_of,*/};
+    use Evm::U256::{U256, gt /*gt, add, sub, zero, le*/};
 
     #[external(sig=b"withdraw(uint256) returns (uint256)")]
     public native fun withdraw (contract: address, amount: U256): U256;
@@ -18,6 +18,17 @@ module Evm::bet {
     #[external(sig=b"coinValue(uint256) returns (uint256)")]
     public native fun coin_value(contract: address, coin: U256): U256;
 
+    #[external(sig=b"merge(uint256,uint256)")]
+    public native fun merge(contract: address, coin1: U256, coin2: U256);
+
+    #[external(sig=b"split(uint256,uint256) returns (uint256)")]
+    public native fun split(contract: address, coin: U256, amount: U256): U256;
+
+    #[event(sig=b"Timestamp(uint256)")]
+    struct Timestamp {
+        time: U256
+    }
+
     struct OracleBet has key {
         coin_address: address,
         player1: address,
@@ -31,8 +42,15 @@ module Evm::bet {
         coinId: U256,
     }
 
-    #[callable(sig=b"constructor(address,address,address,uint256,uint256,address)")]
-    public fun constructor(player1: address, player2: address, oracle: address, stake: U256, deadline: U256, coin_address: address) {
+    #[create(sig=b"constructor(address,address,address,uint256,uint256,address)")]
+    public fun create(
+        player1: address, 
+        player2: address, 
+        oracle: address, 
+        stake: U256, 
+        deadline: U256, 
+        coin_address: address
+    ) {
         let state = OracleBet{
             coin_address: coin_address,
             player1: player1,
@@ -73,9 +91,8 @@ module Evm::bet {
         let Bet { coinId: coinId2 } = move_from<Bet>(player2);
         unstore_external(coin_address, coinId1);
         unstore_external(coin_address, coinId2);
-        // TODO merge coin
+        merge(coin_address, coinId1, coinId2);
         deposit(coin_address, winner, coinId1);
-        deposit(coin_address, winner, coinId2);
     }
 
     #[callable(sig=b"timeout()")]
@@ -89,8 +106,8 @@ module Evm::bet {
             stake: _,
             deadline: deadline
         } = move_from<OracleBet>(self());
-        
-        assert!(lt(deadline, block_timestamp()), 0);
+
+        assert!(gt(block_timestamp(), deadline), 0);
 
         let Bet { coinId: coinId1 } = move_from<Bet>(player1);
         let Bet { coinId: coinId2 } = move_from<Bet>(player2);
