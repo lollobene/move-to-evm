@@ -62,6 +62,14 @@ impl<'a> FunctionGenerator<'a> {
         fun_gen.unstore_external_function(ctx);
     }
 
+    pub fn run_get_signer(parent: &'a mut Generator, ctx: &Context){
+        let mut fun_gen = Self {
+            parent,
+            borrowed_locals: Default::default(),
+        };
+        fun_gen.get_signer_function(ctx);
+    }
+
     // pub fn run_res_out_generation(parent: &'a mut Generator, ctx: &Context, fun_env: &FunctionEnv, struct_id: QualifiedInstId<StructId>, param_name: String) {
     //     let mut fun_gen = Self {
     //         parent,
@@ -436,6 +444,33 @@ impl<'a> FunctionGenerator<'a> {
         });
 
     }
+
+    fn get_signer_function(&mut self, ctx: &Context) {
+        let function_name = "$Signer".to_string();
+        let signer = "signer".to_string();
+        emit!(
+            ctx.writer,
+            "function {}() -> {}",
+            function_name,
+            signer.clone()
+        );
+        ctx.emit_block(|| {
+            self.parent.call_protection_layer_builtin(
+                ctx, 
+                YulProtectionFunction::AbortNotProtected,
+                std::iter::empty(),
+            );
+
+            self.parent.call_protection_layer_builtin_with_result(
+                ctx,
+                "",
+                std::iter::once(signer.clone()),
+                YulProtectionFunction::GetSigner,
+                std::iter::empty(),
+            );
+        });
+    }
+
     /// Compute the locals in the given function which are borrowed from and which are not
     /// already indirections to memory (like structs or vectors) Such locals need
     /// to be evaded to memory and cannot be kept on the stack, so we can create references

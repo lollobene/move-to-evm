@@ -117,6 +117,16 @@ impl Generator {
             self.solidity_sigs.push((solidity_unstore_external_sig.clone(), FunctionAttribute::NonPayable));
             // Add the unstoreExternal dispatcher item at the end of the function dispatcher
             self.generate_unstore_external_dispatch_item(ctx, &solidity_unstore_external_sig, &mut selectors);
+
+            // Generate getSigner signature
+            let solidity_get_signer_sig = SoliditySignature::create_get_signer_signature();
+            //  Add the getSigner signature to the list of signatures, so this will be also added to the ABI produced
+            self.solidity_sigs.push((solidity_get_signer_sig.clone(), FunctionAttribute::NonPayable));
+            // Add the getSigner dispatcher item at the end of the function dispatcher
+
+            self.generate_get_signer_dispatch_item(ctx, &solidity_get_signer_sig, &mut selectors);
+
+            // Generate default case
             emitln!(ctx.writer, "default { revert(0, 0) }");
         });
         let receive_exists = self.optional_receive(ctx, receiver);
@@ -340,6 +350,49 @@ impl Generator {
                 "let memEnd := {}(memPos{})",
                 encoding_fun_name,
                 rets
+            );
+            emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
+        });
+    }
+
+    fn generate_get_signer_dispatch_item(
+        &mut self,
+        ctx: &Context,
+        solidity_sig: &SoliditySignature,
+        selectors: &mut BTreeMap<String, QualifiedId<FunId>>
+    ) {
+        let function_name = String::from("$Signer");
+        let fun_sig = String::from("getSigner()");
+        let function_selector =
+            format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
+        // Check selector collision
+        if let Some(other_fun) = selectors.get(&function_selector)
+        {
+            ctx.env.error(
+                &ctx.env.get_function(other_fun.clone()).get_loc(),
+                &format!(
+                    "hash collision for function selector with `{}`",
+                    ctx.env.get_function(other_fun.clone()).get_full_name_str()
+                ),
+            );
+        }
+        emitln!(ctx.writer, "case {}", function_selector);
+        ctx.emit_block(|| {
+            emitln!(ctx.writer, "// {}", fun_sig);
+            self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
+            // Call the function
+            let ret = "ret_0".to_string();
+            emitln!(ctx.writer, "let {} := {}()", ret.clone(), function_name);
+            let logical_return_types: Vec<Type> = vec![Type::Primitive(PrimitiveType::Address)];
+            let encoding_fun_name = self.generate_abi_tuple_encoding_ret(ctx, &solidity_sig, logical_return_types);
+            
+            // Prepare the return values
+            self.generate_allocate_unbounded(ctx);
+            emitln!(
+                ctx.writer,
+                "let memEnd := {}(memPos,{})",
+                encoding_fun_name,
+                ret
             );
             emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
         });

@@ -731,6 +731,23 @@ impl SoliditySignature {
         }
     }
 
+    pub(crate) fn create_get_signer_signature(
+    ) -> Self {
+        let fun_name = "getSigner".to_string();
+        let para_type_lst = vec![];
+        let mut ret_type_lst = vec![];
+        ret_type_lst.push((
+            SolidityType::Primitive(SolidityPrimitiveType::Address(false)),
+            SignatureDataLocation::Memory,
+        ));
+
+        SoliditySignature {
+            sig_name: fun_name,
+            para_types: para_type_lst,
+            ret_types: ret_type_lst,
+        }
+    }
+
     /// Create a default solidity signature from a move function signature
     pub(crate) fn create_default_solidity_signature(
         ctx: &Context,
