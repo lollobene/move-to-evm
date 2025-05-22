@@ -1,0 +1,197 @@
+Gas evauation
+
+************************************ AUCTION ************************************
+
+Contract: Auction
+Start cost 250903
+Bid cost 213711
+Bid cost 214499
+End cost 99175
+
+Contract: AuctionOriginal
+Start cost 192137
+Bid cost 129434
+Bid cost 130234
+End cost 84097
+
+ Contract: RosettaAuction
+Start cost:  68780
+Bid cost:  55113
+Bid cost:  60450
+End cost:  40221
+
+************************************ BET ************************************
+
+Contract: Bet
+Join cost:  191024
+Join cost:  193436
+Win cost:  117082
+Timeout cost:  120653
+
+Contract: BetOriginal
+Join cost:  133467
+Join cost:  118791
+Win cost:  81402
+Timeout cost:  87048
+
+Contract: RosettaBet
+Join cost:  28038
+Join cost:  28038
+Win cost:  37938
+Timeout cost:  46856
+
+************************************ CROWDFUND ************************************
+
+Contract: Crowdfund
+Donate cost:  159140
+Donate cost:  145450
+Donate cost:  145469
+Reclaim cost:  117216
+Withdraw cost:  81328
+
+Contract: Crowdfund Original
+Donate cost:  111889
+Donate cost:  89989
+Donate cost:  89989
+Reclaim cost:  66173
+Withdraw cost:  49378
+
+Contract: RosettaCrowdfund
+Donate cost:  45748
+Donate cost:  45748
+Donate cost:  45748
+Reclaim cost:  33167
+Withdraw cost:  37178
+
+************************************ ESCROW ************************************
+
+Contract: Escrow
+Deposit cost:  143700
+Pay cost:  118210
+Deposit cost:  143700
+Refund cost:  131917
+
+Contract: EscrowOriginal
+Deposit cost:  92448
+Pay cost:  69432
+Deposit cost:  87648
+Refund cost:  69450
+
+Contract: RosettaEscrow
+Deposit cost:  47888
+Pay cost:  42486
+Deposit cost:  47888
+Refund cost:  42511
+
+************************************ PRICEBET ************************************
+
+Contract: Pricebet
+Join cost:  128072
+Win cost:  69982
+Join cost:  128072
+Timeout cost:  74172
+
+Contract: PricebetOriginal
+Join cost:  73049
+Win cost:  54994
+Join cost:  73049
+Timeout cost:  62982
+
+Contract: RosettaPriceBet
+Join cost:  45660
+Win cost:  40293
+Join cost:  45660
+Timeout cost:  35073
+************************************ SIMPLEWALLET ************************************
+
+
+Contract: SimpleWallet
+Initialize cost:  293111
+Deposit cost:  125174
+Withdraw cost:  113222
+Deposit cost:  111484
+Create transaction cost:  214718
+Execute transaction cost:  142361
+
+Contract: SimpleWalletOriginal
+Initialize cost:  189910
+Deposit cost:  67518
+Withdraw cost:  45824
+Deposit cost:  50418
+Create transaction cost:  206888
+Execute transaction cost:  88230
+
+Contract: RosettaSimpleWallet
+Withdraw cost:  30607
+Deposit cost:  21227
+Create transaction cost:  117237
+Execute transaction cost:  45593
+
+************************************ STORAGE ************************************
+
+Contract: Storage
+StoreBytes cost: 79190
+StoreString cost: 79318
+
+Contract: StorageOriginal
+StoreBytes cost: 79190
+StoreString cost: 79318
+
+yes, costs are the same because are implmented in the same way
+
+Contract: RosettaStorage
+Store bytes cost:  67278
+Store string cost:  45165
+************************************ TOKEN TRANSFER ************************************
+
+Contract: TokenTransfer
+Init cost:  270850
+Deposit cost:  123021
+Withdraw cost:  112175
+
+Contract: TokenTransferOriginal
+Init cost:  167636
+Deposit cost:  66912
+Withdraw cost:  45641
+
+Contract: RosettaTokenTransfer
+Deposit cost:  90170
+Withdraw cost:  62561
+
+************************************ VAULT ************************************
+
+Contract: Vault
+Init cost:  302543
+Deposit cost:  119576
+Withdraw cost:  138763
+Finalize cost:  122632
+Withdraw cost:  81863
+Cancel cost:  40914
+
+Contract: VaultOriginal
+Init cost:  199316
+Deposit cost:  64509
+Withdraw cost:  122704
+Finalize cost:  58771
+Withdraw cost:  85704
+Cancel cost:  30826
+
+Contract: RosettaVault
+Deposit cost:  21055
+Withdraw cost:  113184
+Finalize cost:  42095
+Withdraw cost:  113184
+Cancel cost:  23871
+
+************************************ VESTING ************************************
+
+Contract: Vesting
+Init cost:  298614
+Release cost:  132716
+
+Contract: VestingOriginal
+Init cost:  195364
+Release cost:  73785
+
+Contract: RosettaVesting
+Release cost:  26824
