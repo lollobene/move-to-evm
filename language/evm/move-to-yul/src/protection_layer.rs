@@ -158,7 +158,7 @@ StoreTypeHash: "(resId, typeHash) {
     mstore(add(base, 0x20), 0x00)
     let key := keccak256(base, 0x40)
     mstore(base, key)
-    log0(base, 0x20)
+    // log0(base, 0x20)
     sstore(key, typeHash)
 }" dep Malloc2,
 
@@ -168,7 +168,7 @@ GetTypeHash: "(resId) -> typeHash {
     mstore(add(base, 0x20), 0x00)
     let key := keccak256(base, 0x40)
     mstore(base, key)
-    log0(base, 0x20)
+    // log0(base, 0x20)
     typeHash := sload(key)
 }" dep Malloc2,
 
@@ -178,7 +178,7 @@ RemoveTypeHash: "(resId) {
     mstore(add(base, 0x20), 0x00)
     let key := keccak256(base, 0x40)
     mstore(base, key)
-    log0(base, 0x20)
+    // log0(base, 0x20)
     sstore(key, 0)
 }" dep Malloc2,
 

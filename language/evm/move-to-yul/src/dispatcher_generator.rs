@@ -123,8 +123,15 @@ impl Generator {
             //  Add the getSigner signature to the list of signatures, so this will be also added to the ABI produced
             self.solidity_sigs.push((solidity_get_signer_sig.clone(), FunctionAttribute::NonPayable));
             // Add the getSigner dispatcher item at the end of the function dispatcher
-
             self.generate_get_signer_dispatch_item(ctx, &solidity_get_signer_sig, &mut selectors);
+
+            // Generate dropRes signature
+            let solidity_drop_res_sig = SoliditySignature::create_drop_res_signature();
+            //  Add the dropRes signature to the list of signatures, so this will be also added to the ABI produced
+            self.solidity_sigs.push((solidity_drop_res_sig.clone(), FunctionAttribute::NonPayable));
+            // Add the dropRes dispatcher item at the end of the function dispatcher
+            self.generate_drop_res_dispatch_item(ctx, &solidity_drop_res_sig, &mut selectors);
+
 
             // Generate default case
             emitln!(ctx.writer, "default { revert(0, 0) }");
@@ -393,6 +400,68 @@ impl Generator {
                 "let memEnd := {}(memPos,{})",
                 encoding_fun_name,
                 ret
+            );
+            emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
+        });
+    }
+
+    fn generate_drop_res_dispatch_item(
+        &mut self,
+        ctx: &Context,
+        solidity_sig: &SoliditySignature,
+        selectors: &mut BTreeMap<String, QualifiedId<FunId>>
+    ) {
+        let function_name = String::from("$DropRes");
+        let fun_sig = String::from("dropRes(uint256)");
+        let function_selector =
+            format!("0x{:x}", Keccak256::digest(fun_sig.as_bytes()))[..10].to_string();
+        // Check selector collision
+        if let Some(other_fun) = selectors.get(&function_selector)
+        {
+            ctx.env.error(
+                &ctx.env.get_function(other_fun.clone()).get_loc(),
+                &format!(
+                    "hash collision for function selector with `{}`",
+                    ctx.env.get_function(other_fun.clone()).get_full_name_str()
+                ),
+            );
+        }
+        emitln!(ctx.writer, "case {}", function_selector);
+        ctx.emit_block(|| {
+            emitln!(ctx.writer, "// {}", fun_sig);
+            let storage_type: Option<QualifiedInstId<StructId>> = None;
+            self.generate_call_value_check(ctx, REVERT_ERR_NON_PAYABLE_FUN);
+            let logical_param_types: Vec<Type> = vec![Type::Primitive(PrimitiveType::U256)];
+            let param_count: u8 = 1;
+
+            let decoding_fun_name = self.generate_abi_tuple_decoding_para(
+                ctx,
+                &solidity_sig,
+                logical_param_types,
+                false,
+            );
+            let mut params = (0..param_count).map(|i| format!("param_{}", i)).join(", ");
+            let let_params = format!("let {} := ", params);
+            emitln!(
+                ctx.writer,
+                "{}{}(4, calldatasize())",
+                let_params,
+                decoding_fun_name
+            );
+            
+            params = self.add_storage_ref_param(ctx, &storage_type, params);
+            // Call the function
+            emitln!(ctx.writer, "{}({})", function_name, params);
+
+            let encoding_fun_name = self.generate_abi_tuple_encoding_ret(ctx, &solidity_sig, vec![]);
+            let rets = format!("");
+            // Prepare the return values
+            self.generate_allocate_unbounded(ctx);
+            emitln!(
+                ctx.writer,
+                "let memEnd := {}(memPos{})",
+                encoding_fun_name,
+                rets
             );
             emitln!(ctx.writer, "return(memPos, sub(memEnd, memPos))");
         });
@@ -811,6 +880,16 @@ impl Generator {
                     std::iter::empty(),
                 );
                 // Increase size of H
+
+                // TODO LOZ check if the struct has drop ability and eventually do not increment H
+                // if !ctx.env.get_struct(struct_id.to_qualified_id()).get_abilities().has_drop() {
+                //     gen.call_protection_layer_builtin(
+                //         ctx, 
+                //         YulProtectionFunction::IncrementH, 
+                //         std::iter::empty(),
+                //     );
+                // }
+                
                 gen.call_protection_layer_builtin(
                     ctx, 
                     YulProtectionFunction::IncrementH, 
@@ -876,6 +955,16 @@ impl Generator {
             emit!(ctx.writer, "({}) -> {} ", res_id.clone(), res.clone());
             ctx.emit_block(||{
                 // Decrease size of H
+
+                // TODO LOZ check if the struct has drop ability and eventually do not decrement H
+                // if !ctx.env.get_struct(struct_id.to_qualified_id()).get_abilities().has_drop() {
+                //     gen.call_protection_layer_builtin(
+                //         ctx, 
+                //         YulProtectionFunction::DecrementH, 
+                //         std::iter::empty(),
+                //     );
+                // }
+
                 gen.call_protection_layer_builtin(
                     ctx, 
                     YulProtectionFunction::DecrementH, 

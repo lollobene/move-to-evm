@@ -62,6 +62,14 @@ impl<'a> FunctionGenerator<'a> {
         fun_gen.unstore_external_function(ctx);
     }
 
+    pub fn run_drop_res(parent: &'a mut Generator, ctx: &Context){
+        let mut fun_gen = Self {
+            parent,
+            borrowed_locals: Default::default(),
+        };
+        fun_gen.drop_res_function(ctx);
+    }
+
     pub fn run_get_signer(parent: &'a mut Generator, ctx: &Context){
         let mut fun_gen = Self {
             parent,
@@ -444,6 +452,93 @@ impl<'a> FunctionGenerator<'a> {
         });
 
     }
+
+    fn drop_res_function(&mut self, ctx: &Context) {
+        let function_name = "$DropRes".to_string();
+        let params_str = "resource_id".to_string();
+        let hash = "hash".to_string();
+        let res = "resource".to_string();
+        let sender = "sender".to_string();
+
+        emit!(
+            ctx.writer,
+            "function {}({}) ",
+            function_name,
+            params_str.clone()
+        );
+
+        ctx.emit_block(|| {
+            // emitln!(ctx.writer, "if iszero($IsProtected())");
+            self.parent.call_protection_layer_builtin(
+                ctx, 
+                YulProtectionFunction::AbortNotProtected,
+                std::iter::empty(),
+            );
+
+            // emitln!(ctx.writer, "$DecrementH()");
+            self.parent.call_protection_layer_builtin(
+                ctx, 
+                YulProtectionFunction::DecrementH,
+                std::iter::empty(),
+            );
+
+            emitln!(
+                ctx.writer,
+                "let sender := caller()"
+            );
+
+            // // emitln!(ctx.writer, "let $t0 := $GetSigner()");
+            // self.parent.call_protection_layer_builtin_with_result(
+            //     ctx,
+            //     "let ",
+            //     std::iter::once(signer.clone()),
+            //     YulProtectionFunction::GetSigner,
+            //     std::iter::empty(),
+            // );
+
+            self.parent.call_protection_layer_builtin_with_result(
+                ctx, 
+                "let ", 
+                std::iter::once(hash.clone()), 
+                YulProtectionFunction::ComputeHash, 
+                std::iter::once(format!("{}, {}", sender.clone(), params_str.clone()))
+            );
+
+            emitln!(ctx.writer, "let {}", res.clone());
+            self.parent.call_protection_layer_builtin_with_result(
+                ctx, 
+                "let ", 
+                std::iter::once("type_hash".to_string()), 
+                YulProtectionFunction::GetTypeHash, 
+                std::iter::once(params_str.clone())
+            );
+
+            if self.parent.returned_types.len() > 0 {
+
+                emitln!(ctx.writer, "switch type_hash");
+            }
+            
+            for strct in self.parent.returned_types.clone() {
+                let type_hash = self.parent.type_hash(ctx, & strct.to_type());
+                
+                emitln!(ctx.writer, "case 0x{:x}", type_hash);
+
+                ctx.emit_block(||{
+                    // for every struct defined within the module, generate the correct move from transient by matching the type hash
+                    // check if exists, gets from transient and removes it
+                    // get from transient
+                    self.parent.move_from_transient(ctx, &strct, hash.clone(), res.clone());
+                    // check not exists in external
+                    // store to external
+                    self.parent.unsave_resource(ctx, &strct, params_str.clone(), "$dst".to_string());
+                });
+            }
+            if self.parent.returned_types.len() > 0 {
+                emitln!(ctx.writer, "default { revert(0, 0) }");
+            }
+        });
+    }
+
 
     fn get_signer_function(&mut self, ctx: &Context) {
         let function_name = "$Signer".to_string();
