@@ -21,14 +21,6 @@ module Evm::bet {
     #[external(sig=b"merge(uint256,uint256)")]
     public native fun merge(contract: address, coin1: U256, coin2: U256);
 
-    #[external(sig=b"split(uint256,uint256) returns (uint256)")]
-    public native fun split(contract: address, coin: U256, amount: U256): U256;
-
-    #[event(sig=b"Timestamp(uint256)")]
-    struct Timestamp {
-        time: U256
-    }
-
     struct OracleBet has key {
         coin_address: address,
         player1: address,
