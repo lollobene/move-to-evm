@@ -336,7 +336,7 @@ impl<'a> FunctionGenerator<'a> {
                 "let ", 
                 std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
-                std::iter::once(params_str)
+                std::iter::once(params_str.clone())
             );
 
             if self.parent.returned_types.len() > 0 {
@@ -353,6 +353,10 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
+                    self.parent.unsave_resource(ctx, &strct, params_str.clone(), res.clone());
+
+                    self.parent.save_resource_external(ctx, &strct, res.clone(), params_str.clone());
+
                     self.parent.move_from_transient(ctx, &strct, hash.clone(), res.clone());
                     // check not exists in external
                     // store to external
@@ -423,7 +427,7 @@ impl<'a> FunctionGenerator<'a> {
                 "let ", 
                 std::iter::once("type_hash".to_string()), 
                 YulProtectionFunction::GetTypeHash, 
-                std::iter::once(params_str)
+                std::iter::once(params_str.clone())
             );
 
             if self.parent.returned_types.len() > 0 {
@@ -440,6 +444,11 @@ impl<'a> FunctionGenerator<'a> {
                     // for every struct defined within the module, generate the correct move from transient by matching the type hash
                     // check if exists, gets from transient and removes it
                     // get from transient
+
+                    self.parent.unsave_resource_external(ctx, &strct, params_str.clone(), res.clone());
+
+                    self.parent.save_resource(ctx, &strct, res.clone(), params_str.clone());
+
                     self.parent.move_from_external(ctx, &strct, hash.clone(), res.clone());
                     // check not exists in external
                     // store to external
