@@ -2,9 +2,9 @@
 ************************************ ALIENS EVENTS ************************************
 
 Contract: AliensEvents
-New withdraw event cost:  101835
-New set referrer event cost:  158549
-New set mint price event cost:  69950
+New withdraw event cost:  78066
+New set referrer event cost:  84966
+New set mint price event cost:  60141
 
 Contract: AliensEvents Original
 New withdraw event cost:  22090
@@ -21,11 +21,11 @@ Base64 decode cost:  92631
 REDUCED IMPLEMENTATION, REMOVED FUNCTIONS THAT USE BCS HASH LIBRARY
 
 Contract: Bytes32
-Bytes32 zeroBytes32Test cost:  135024
-Bytes32 ffBytes32Test cost:  123525
-Bytes32 isZeroTest cost:  112348
-Bytes32 tobytes32Test cost:  108298
-Bytes32 frombytes32Test cost:  109056
+Bytes32 zeroBytes32Test cost:  100772
+Bytes32 ffBytes32Test cost:  66498
+Bytes32 isZeroTest cost:  75967
+Bytes32 tobytes32Test cost:  67364
+Bytes32 frombytes32Test cost:  54654
 
 Contract: Bytes32 Original
 Bytes32 Original zeroBytes32Test cost:  26990
@@ -71,21 +71,21 @@ fullMul cost:  21788
 REDUCED IMPLEMENTATION BECAUSE IT HAS 27 FUNCTIONs, WE PROVIDE NUMBERS FOR 15 OF THEM
 
 Contract: I64
-I64 zeroTest cost:  81152
-I64 fromU64Test cost:  83179
-I64 fromTest cost:  83415
-I64 fromNegTest cost:  83888
-I64 wrappingAddTest cost:  197116
-I64 addTest cost:  197906
-I64 wrappingSubTest cost:  198421
-I64 subTest cost:  199376
-I64 mulTest cost:  198093
-I64 divTest cost:  197926
-I64 absTest cost:  139775
-I64 absU64Test cost:  83508
-I64 minTest cost:  196661
-I64 maxTest cost:  196667
-I64 powTest cost:  147632
+I64 zeroTest cost:  77068
+I64 fromU64Test cost:  60089
+I64 fromTest cost:  60384
+I64 fromNegTest cost:  60976
+I64 wrappingAddTest cost:  91803
+I64 addTest cost:  92592
+I64 wrappingSubTest cost:  109028
+I64 subTest cost:  109983
+I64 mulTest cost:  92780
+I64 divTest cost:  92612
+I64 absTest cost:  69564
+I64 absU64Test cost:  48405
+I64 minTest cost:  91348
+I64 maxTest cost:  91353
+I64 powTest cost:  77422
 
 Contract: I64 Original
 I64 Original zeroTest cost:  25801
@@ -215,14 +215,14 @@ NOT IMPLEMENTABLE BECAUSE IT USES APTOS OBJECT
 ************************************ UQ64x64 ************************************
 
 Contract: Uq64x64
-Encode cost:  96657
-Decode cost:  83020
-ToU128 cost:  83092
-Mul cost:  139767
-Div cost:  139888
-Fraction cost:  83545
-Compare cost:  145921
-IsZero cost:  86114
+Encode cost:  26029
+Decode cost:  27193
+toU128 cost:  27278
+mul cost:  28150
+div cost:  28292
+fraction cost:  26730
+compare cost:  29309
+isZero cost:  27317
 
 Contract: Uq64x64Original
 Encode cost:  26029
