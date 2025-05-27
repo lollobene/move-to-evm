@@ -1,0 +1,235 @@
+
+************************************ ALIENS EVENTS ************************************
+
+Contract: AliensEvents
+New withdraw event cost:  78066
+New set referrer event cost:  84966
+New set mint price event cost:  60141
+
+Contract: AliensEvents Original
+New withdraw event cost:  22090
+New set referrer event cost:  23027
+New set mint price event cost:  21552
+
+************************************ BASE64 ************************************
+
+Contract: Base64
+Base64 encode cost:  73237
+Base64 decode cost:  92631
+
+************************************ BYTES32 ************************************
+REDUCED IMPLEMENTATION, REMOVED FUNCTIONS THAT USE BCS HASH LIBRARY
+
+Contract: Bytes32
+Bytes32 zeroBytes32Test cost:  100772
+Bytes32 ffBytes32Test cost:  66498
+Bytes32 isZeroTest cost:  75967
+Bytes32 tobytes32Test cost:  67364
+Bytes32 frombytes32Test cost:  54654
+
+Contract: Bytes32 Original
+Bytes32 Original zeroBytes32Test cost:  26990
+Bytes32 Original ffBytes32Test cost:  26917
+Bytes32 Original isZeroTest cost:  29765
+Bytes32 Original tobytes32Test cost:  27814
+Bytes32 Original frombytes32Test cost:  30463
+
+************************************ CIRCLE INTERSECTIONS ************************************
+
+Contract: CircleIntersections
+Circle intersections cost:  23391
+Circle intersections monitor cost:  24883
+
+************************************ COUNTER ************************************
+IMPLEMENTED REMOVING TYPES PARAMETERS
+
+Contract: Counter
+Create counter cost:  48795
+Push counter cost:  48980
+Create price cost:  48826
+Push price cost:  49720
+
+Contract: CounterOriginal
+Create counter cost:  45904
+Push counter cost:  46081
+Create price cost:  45941
+Push price cost:  46812
+
+************************************ DATE ************************************
+NOT IMPLEMENTED BUGGY CONTRACT
+
+************************************ FULL MATH ************************************
+Contract: FullMath
+mulDivFloor cost:  22215
+mulDivRound cost:  22380
+mulDivCeil cost:  22369
+mulShr cost:  22157
+mulShl cost:  22153
+fullMul cost:  21788
+
+************************************ I64 ************************************
+REDUCED IMPLEMENTATION BECAUSE IT HAS 27 FUNCTIONs, WE PROVIDE NUMBERS FOR 15 OF THEM
+
+Contract: I64
+I64 zeroTest cost:  77068
+I64 fromU64Test cost:  60089
+I64 fromTest cost:  60384
+I64 fromNegTest cost:  60976
+I64 wrappingAddTest cost:  91803
+I64 addTest cost:  92592
+I64 wrappingSubTest cost:  109028
+I64 subTest cost:  109983
+I64 mulTest cost:  92780
+I64 divTest cost:  92612
+I64 absTest cost:  69564
+I64 absU64Test cost:  48405
+I64 minTest cost:  91348
+I64 maxTest cost:  91353
+I64 powTest cost:  77422
+
+Contract: I64 Original
+I64 Original zeroTest cost:  25801
+I64 Original fromU64Test cost:  25945
+I64 Original fromTest cost:  26232
+I64 Original fromNegTest cost:  26824
+I64 Original wrappingAddTest cost:  30637
+I64 Original addTest cost:  31624
+I64 Original wrappingSubTest cost:  52167
+I64 Original subTest cost:  53361
+I64 Original mulTest cost:  31858
+I64 Original divTest cost:  31649
+I64 Original absTest cost:  27821
+I64 Original absU64Test cost:  27630
+I64 Original minTest cost:  30068
+I64 Original maxTest cost:  30075
+I64 Original powTest cost:  37643
+
+************************************ IMPERFECT LOCKER ************************************
+CAN BE IMPLEMENTED REMOVING GENERIC TYPES
+
+Contract: ImperfectLocker
+Initialize pool cost:  92025
+Update pool cost:  33684
+Calculate impermanent loss cost:  36426
+
+Contract: ImperfectLockerOriginal
+Initialize pool cost:  89102
+Update pool cost:  30784
+Calculate impermanent loss cost:  33796
+
+************************************ MATH ************************************
+
+Contract: Math
+Math overflowAdd cost:  22450
+Math mulDiv cost:  22695
+Math mulDivU128 cost:  22555
+Math mulToU128 cost:  22046
+Math sqrt cost:  48167
+Math pow10 cost:  24767
+Math minU64 cost:  22065
+
+************************************ MATH 2 ************************************
+
+Contract: Math2
+Math2 sqrt cost:  46463
+Math2 min cost:  22170
+Math2 maxU64 cost:  22042
+Math2 max cost:  22148
+Math2 pow cost:  23524
+
+************************************ MULTI ADMIN ************************************
+Contract: MultiAdmin
+Initialize cost:  68620
+Set admin cost:  32646
+
+Contract: MultiAdmin Original
+Initialize cost:  65767
+Set admin cost:  29783
+
+************************************ NAV ************************************
+
+Contract: Nav
+Init nav cost:  48846
+Update asset value cost:  48973
+Update token supply cost:  31922
+Calculate nav cost:  30000
+
+Contract: NavOriginal
+Init nav cost:  45955
+Update asset value cost:  46074
+Update token supply cost:  29019
+Calculate nav cost:  27107
+
+************************************ OFFER ************************************
+NOT IMPLEMENTABLE BECAUSE OF LARGE USE OF GENERIC TYPE PARAMETERS
+
+************************************ PICTURE ************************************
+IMPLEMENTED REMOVING ONE FUNCTION THAT USED MATH SQRT
+
+Contract: Picture
+Vectorize cost:  675123
+Theoretical D1 values cost:  22252
+Distance cost:  21961
+Circle intersections cost:  23610
+
+************************************ REQ LEVEL ************************************
+
+Contract: ReqLev
+Create perp market cost:  318153
+
+Contract: ReqLevOriginal
+Create perp market cost:  315218
+
+************************************ TOKEN ************************************
+
+Contract: Token
+Initialize cost:  48829
+Mint cost:  49457
+Transfer cost:  53748
+Balance cost:  26331
+
+Contract: TokenOriginal
+Initialize cost:  45938
+Initialize cost:  45938
+Mint cost:  46558
+Transfer cost:  55643
+Balance cost:  26331
+
+************************************ TOKEN MODULE ************************************
+
+Contract: TokenModule
+Initialize balance cost:  68945
+Initialize balance with zero cost:  49021
+Transfer tokens cost:  54539
+Get balance cost:  26343
+
+Contract: TokenModuleOriginal
+Initialize balance cost:  66036
+Initialize balance with zero cost:  46112
+Transfer tokens cost:  56425
+Get balance cost:  26343
+
+************************************ UNIVERSAL CONFIG ************************************
+NOT IMPLEMENTABLE BECAUSE IT USES APTOS OBJECT
+
+************************************ UQ64x64 ************************************
+
+Contract: Uq64x64
+Encode cost:  26029
+Decode cost:  27193
+toU128 cost:  27278
+mul cost:  28150
+div cost:  28292
+fraction cost:  26730
+compare cost:  29309
+isZero cost:  27317
+
+Contract: Uq64x64Original
+Encode cost:  26029
+Decode cost:  27193
+toU128 cost:  27278
+mul cost:  28150
+div cost:  28292
+fraction cost:  26730
+compare cost:  29309
+isZero cost:  27317

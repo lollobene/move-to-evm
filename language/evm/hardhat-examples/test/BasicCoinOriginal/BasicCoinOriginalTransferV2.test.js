@@ -6,7 +6,7 @@ const { ZERO_ADDRESS } = constants;
 const BasicCoin = artifacts.require('BasicCoinOriginal');
 const BasicCoinTest = artifacts.require('BasicCoinOriginalTestV1');
 
-contract('BasicCoin', function (accounts) {
+contract('BasicCoinOriginal', function (accounts) {
     const [deployer, user1, user2] = accounts;
 
     beforeEach(async function () {
@@ -38,6 +38,7 @@ contract('BasicCoin', function (accounts) {
             let result = await this.basicCoinTest.transfer(user1, '1', user2, {
                 from: user1,
             });
+            console.log('Transfer cost: ', result.receipt.gasUsed);
         });
     });
 });

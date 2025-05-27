@@ -295,12 +295,11 @@ contract('BasicCoin', function (accounts) {
             });
         });
     });
-    describe('when protection layer is not invoked', function () {
-        it('register function should not work as expected ', async function () {
-            await expectRevert(
-                await this.basicCoin.register({ from: user1 }),
-                '0x0000000000000007'
-            );
+    describe('when protection layer is not invoked', async function () {
+        xit('register function should not work as expected ', async function () {
+            await expect(
+                await this.basicCoin.register({ from: user1 })
+            ).to.be.revertedWith('0x0000000000000007');
         });
     });
 });

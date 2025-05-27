@@ -1,6 +1,6 @@
 #[evm_contract]
 module Evm::auction {
-    use Evm::Evm::{sign, self, sender, address_of /*require address_of,*/};
+    use Evm::Evm::{sign, self /*require address_of,*/};
     use Evm::U256::{U256, gt/*, add, sub, zero, le*/};
 
     #[external(sig=b"withdraw(uint256) returns (uint256)")]
@@ -18,6 +18,9 @@ module Evm::auction {
     #[external(sig=b"coinValue(uint256) returns (uint256)")]
     public native fun coin_value(contract: address, coin: U256): U256;
 
+    #[external(sig=b"getSigner() returns (address)")]
+    public native fun get_signer(contract: address): address;
+
     struct Auction has key {
         coin_address: address,
         auctioneer: address,
@@ -31,6 +34,7 @@ module Evm::auction {
 
     #[callable(sig=b"start(address,address,uint256)")]
     public fun start(acc: address, coin_address: address, base: U256) {
+        assert!(acc == get_signer(coin_address), 0);
         let state = Auction {
             coin_address: coin_address,
             auctioneer: acc,
@@ -47,6 +51,7 @@ module Evm::auction {
     #[callable(sig=b"bid(address,uint256)")]
     public fun bid(acc: address, amount: U256) acquires Auction, Bid {
         let auction = borrow_global_mut<Auction>(self());
+        assert!(acc == get_signer(auction.coin_address), 0);
         let Bid { coinId } = move_from<Bid>(auction.top_bidder);
         assert!(!auction.expired, 0);
         assert!(gt(amount, coin_value(auction.coin_address, coinId)), 0);
@@ -61,6 +66,7 @@ module Evm::auction {
     #[callable(sig=b"end(address)")]
     public fun end(acc: address) acquires Auction, Bid {
         let auction = borrow_global_mut<Auction>(self());
+        assert!(acc == get_signer(auction.coin_address), 0);
         assert!(auction.auctioneer == acc, 0);
         assert!(!auction.expired, 0);
         auction.expired = true;
